@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Shield Gradient -->
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1EA7E1" />
+      <stop offset="100%" stop-color="#0E85C8" />
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#FFCC00" />
+      <stop offset="40%" stop-color="#FF5500" />
+      <stop offset="100%" stop-color="#DD0000" />
+    </linearGradient>
+    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFEE00" />
+      <stop offset="100%" stop-color="#FFB300" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Black Border & Shield -->
+  <path d="M200 15 L375 90 C395 240, 290 350, 200 385 C110 350, 5 240, 25 90 Z" fill="url(#shieldGrad)" stroke="#111827" stroke-width="12" stroke-linejoin="round" />
+
+  <!-- Top Curved School Name Banner -->
+  <path id="textArc" d="M 50 145 A 175 175 0 0 1 350 145" fill="none" />
+  <text font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="25" font-weight="900" fill="#111827" letter-spacing="3.5">
+    <textPath href="#textArc" startOffset="50%" text-anchor="middle">
+      SMK NEGERI 5 GOWA
+    </textPath>
+  </text>
+
+  <!-- Left Golden Wing -->
+  <g stroke="#111827" stroke-width="5" stroke-linejoin="round" fill="url(#wingGrad)">
+    <path d="M110 270 C80 260, 55 230, 50 200 C80 205, 105 225, 115 245 Z" />
+    <path d="M115 245 C75 220, 65 170, 70 120 C95 150, 110 185, 125 215 Z" />
+    <path d="M125 215 C100 170, 95 130, 105 90 C125 130, 135 165, 138 190 Z" />
+  </g>
+
+  <!-- Right Golden Wing -->
+  <g stroke="#111827" stroke-width="5" stroke-linejoin="round" fill="url(#wingGrad)">
+    <path d="M290 270 C320 260, 345 230, 350 200 C320 205, 295 225, 285 245 Z" />
+    <path d="M285 245 C325 220, 335 170, 330 120 C305 150, 290 185, 275 215 Z" />
+    <path d="M275 215 C300 170, 305 130, 295 90 C275 130, 265 165, 262 190 Z" />
+  </g>
+
+  <!-- Gear & Green Circle Base -->
+  <g transform="translate(200, 230)">
+    <!-- Gear Teeth -->
+    <circle r="68" fill="#262626" stroke="#111827" stroke-width="6" />
+    <g fill="#262626" stroke="#111827" stroke-width="6">
+      <rect x="-12" y="-82" width="24" height="20" rx="3" />
+      <rect x="-12" y="62" width="24" height="20" rx="3" />
+      <rect x="-82" y="-12" width="20" height="24" rx="3" />
+      <rect x="62" y="-12" width="20" height="24" rx="3" />
+      <rect x="-12" y="-82" width="24" height="20" rx="3" transform="rotate(45)" />
+      <rect x="-12" y="62" width="24" height="20" rx="3" transform="rotate(45)" />
+      <rect x="-82" y="-12" width="20" height="24" rx="3" transform="rotate(45)" />
+      <rect x="62" y="-12" width="20" height="24" rx="3" transform="rotate(45)" />
+    </g>
+    <!-- Inner Green Circle -->
+    <circle r="46" fill="#009245" stroke="#FFFFFF" stroke-width="5" />
+  </g>
+
+  <!-- Central Torch with Flame -->
+  <!-- Handle -->
+  <path d="M190 280 L188 150 L212 150 L210 280 Z" fill="#666666" stroke="#111827" stroke-width="5" />
+  <!-- Flame Holder -->
+  <path d="M178 155 L222 155 L215 135 L185 135 Z" fill="#FFB300" stroke="#111827" stroke-width="5" />
+  <!-- Flame -->
+  <path d="M200 65 C220 95, 235 115, 222 140 C210 120, 195 125, 190 140 C170 120, 175 90, 200 65 Z" fill="url(#flameGrad)" stroke="#111827" stroke-width="5" stroke-linejoin="round" />
+
+  <!-- Pen Nib Overlay in Center -->
+  <path d="M200 240 L190 290 L200 305 L210 290 Z" fill="#E5E7EB" stroke="#111827" stroke-width="4" />
+  <circle cx="200" cy="275" r="3" fill="#111827" />
+  <line x1="200" y1="278" x2="200" y2="305" stroke="#111827" stroke-width="2" />
+
+  <!-- Open Book at Bottom Center -->
+  <g stroke="#111827" stroke-width="4" stroke-linejoin="round">
+    <!-- Left Page -->
+    <path d="M200 305 C170 290, 140 295, 125 315 L145 345 C165 330, 185 330, 200 335 Z" fill="#FFFFFF" />
+    <line x1="140" y1="312" x2="185" y2="305" stroke="#6B7280" stroke-width="2" />
+    <line x1="145" y1="322" x2="190" y2="315" stroke="#6B7280" stroke-width="2" />
+    <line x1="150" y1="332" x2="195" y2="325" stroke="#6B7280" stroke-width="2" />
+
+    <!-- Right Page -->
+    <path d="M200 305 C230 290, 260 295, 275 315 L255 345 C235 330, 215 330, 200 335 Z" fill="#FFFFFF" />
+    <line x1="260" y1="312" x2="215" y2="305" stroke="#6B7280" stroke-width="2" />
+    <line x1="255" y1="322" x2="210" y2="315" stroke="#6B7280" stroke-width="2" />
+    <line x1="250" y1="332" x2="205" y2="325" stroke="#6B7280" stroke-width="2" />
+  </g>
+
+  <!-- Bottom Yellow Ribbon Banner "SULAWESI SELATAN" -->
+  <g stroke="#111827" stroke-width="4" stroke-linejoin="round">
+    <!-- Ribbon Tails -->
+    <path d="M70 340 L100 325 L100 355 Z" fill="#FFB300" />
+    <path d="M330 340 L300 325 L300 355 Z" fill="#FFB300" />
+    <!-- Ribbon Body -->
+    <path d="M85 340 C140 365, 260 365, 315 340 L310 365 C255 390, 145 390, 90 365 Z" fill="url(#wingGrad)" />
+  </g>
+  <text x="200" y="362" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="16" font-weight="900" fill="#111827" text-anchor="middle" letter-spacing="2">
+    SULAWESI SELATAN
+  </text>
+</svg>
