@@ -5,6 +5,7 @@ export const supabaseService = {
   // Fetch All Initial Data
   async loadAllData() {
     if (!isSupabaseConfigured || !supabase) return null;
+    const client = supabase as any;
 
     try {
       const [
@@ -15,15 +16,15 @@ export const supabaseService = {
         submissionsRes,
         progressRes
       ] = await Promise.all([
-        supabase.from('users').select('*'),
-        supabase.from('classes').select('*'),
-        supabase.from('class_members').select('*'),
-        supabase.from('learning_items').select('*').order('order_num', { ascending: true }),
-        supabase.from('submissions').select('*'),
-        supabase.from('student_progress').select('*')
+        client.from('users').select('*'),
+        client.from('classes').select('*'),
+        client.from('class_members').select('*'),
+        client.from('learning_items').select('*').order('order_num', { ascending: true }),
+        client.from('submissions').select('*'),
+        client.from('student_progress').select('*')
       ]);
 
-      const users: User[] = (usersRes.data || []).map(u => ({
+      const users: User[] = (usersRes.data || []).map((u: any) => ({
         id: u.id,
         name: u.name,
         email: u.email,
@@ -34,7 +35,7 @@ export const supabaseService = {
         isPasswordChanged: u.is_password_changed
       }));
 
-      const classes: ClassItem[] = (classesRes.data || []).map(c => ({
+      const classes: ClassItem[] = (classesRes.data || []).map((c: any) => ({
         id: c.id,
         title: c.title,
         subject: c.subject,
@@ -49,7 +50,7 @@ export const supabaseService = {
         createdAt: c.created_at
       }));
 
-      const classMembers: ClassMember[] = (membersRes.data || []).map(m => ({
+      const classMembers: ClassMember[] = (membersRes.data || []).map((m: any) => ({
         id: m.id,
         classId: m.class_id,
         studentId: m.student_id,
@@ -58,7 +59,7 @@ export const supabaseService = {
         joinedAt: m.joined_at
       }));
 
-      const learningItems: LearningItem[] = (itemsRes.data || []).map(i => ({
+      const learningItems: LearningItem[] = (itemsRes.data || []).map((i: any) => ({
         id: i.id,
         classId: i.class_id,
         chapterTitle: i.chapter_title,
@@ -84,7 +85,7 @@ export const supabaseService = {
         allowedFormats: i.allowed_formats
       }));
 
-      const submissions: Submission[] = (submissionsRes.data || []).map(s => ({
+      const submissions: Submission[] = (submissionsRes.data || []).map((s: any) => ({
         id: s.id,
         learningItemId: s.learning_item_id,
         classId: s.class_id,
@@ -105,7 +106,7 @@ export const supabaseService = {
         gradedAt: s.graded_at
       }));
 
-      const studentProgressList: StudentProgress[] = (progressRes.data || []).map(p => ({
+      const studentProgressList: StudentProgress[] = (progressRes.data || []).map((p: any) => ({
         classId: p.class_id,
         studentId: p.student_id,
         completedItemIds: p.completed_item_ids || [],
@@ -130,8 +131,9 @@ export const supabaseService = {
   // Sync Single User
   async saveUser(user: User) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('users').upsert({
+      await client.from('users').upsert({
         id: user.id,
         name: user.name,
         email: user.email,
@@ -148,8 +150,9 @@ export const supabaseService = {
 
   async deleteUser(userId: string) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('users').delete().eq('id', userId);
+      await client.from('users').delete().eq('id', userId);
     } catch (err) {
       console.error('Error deleting user from Supabase:', err);
     }
@@ -158,8 +161,9 @@ export const supabaseService = {
   // Sync Class
   async saveClass(classItem: ClassItem) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('classes').upsert({
+      await client.from('classes').upsert({
         id: classItem.id,
         title: classItem.title,
         subject: classItem.subject,
@@ -179,8 +183,9 @@ export const supabaseService = {
 
   async deleteClass(classId: string) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('classes').delete().eq('id', classId);
+      await client.from('classes').delete().eq('id', classId);
     } catch (err) {
       console.error('Error deleting class from Supabase:', err);
     }
@@ -189,8 +194,9 @@ export const supabaseService = {
   // Sync Member
   async saveClassMember(member: ClassMember) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('class_members').upsert({
+      await client.from('class_members').upsert({
         id: member.id,
         class_id: member.classId,
         student_id: member.studentId,
@@ -205,8 +211,9 @@ export const supabaseService = {
 
   async deleteClassMember(classId: string, studentId: string) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase
+      await client
         .from('class_members')
         .delete()
         .eq('class_id', classId)
@@ -219,8 +226,9 @@ export const supabaseService = {
   // Sync Learning Item
   async saveLearningItem(item: LearningItem) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('learning_items').upsert({
+      await client.from('learning_items').upsert({
         id: item.id,
         class_id: item.classId,
         chapter_title: item.chapterTitle,
@@ -252,8 +260,9 @@ export const supabaseService = {
 
   async deleteLearningItem(itemId: string) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('learning_items').delete().eq('id', itemId);
+      await client.from('learning_items').delete().eq('id', itemId);
     } catch (err) {
       console.error('Error deleting learning item from Supabase:', err);
     }
@@ -262,8 +271,9 @@ export const supabaseService = {
   // Sync Submission
   async saveSubmission(submission: Submission) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('submissions').upsert({
+      await client.from('submissions').upsert({
         id: submission.id,
         learning_item_id: submission.learningItemId,
         class_id: submission.classId,
@@ -291,8 +301,9 @@ export const supabaseService = {
   // Sync Student Progress
   async saveStudentProgress(progress: StudentProgress) {
     if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase as any;
     try {
-      await supabase.from('student_progress').upsert({
+      await client.from('student_progress').upsert({
         id: `prog-${progress.classId}-${progress.studentId}`,
         class_id: progress.classId,
         student_id: progress.studentId,
@@ -308,13 +319,14 @@ export const supabaseService = {
   // Upload File to Supabase Storage Bucket
   async uploadFile(file: File, folder = 'documents'): Promise<{ name: string; size: string; url: string } | null> {
     if (!isSupabaseConfigured || !supabase) return null;
+    const client = supabase as any;
 
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await client.storage
         .from('lms-files')
         .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
@@ -323,7 +335,7 @@ export const supabaseService = {
         return null;
       }
 
-      const { data: publicUrlData } = supabase.storage
+      const { data: publicUrlData } = client.storage
         .from('lms-files')
         .getPublicUrl(filePath);
 
