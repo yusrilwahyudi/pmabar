@@ -185,11 +185,15 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 2. If not found, live fetch directly from Supabase
     if (!student && isSupabaseConfigured && supabase) {
       try {
-        const { data } = await (supabase as any)
+        const { data, error } = await (supabase as any)
           .from('users')
           .select('*')
           .eq('id_number', cleanNisn)
           .maybeSingle();
+
+        if (error) {
+          console.error('Supabase query error:', error);
+        }
 
         if (data) {
           student = {
@@ -223,22 +227,42 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loginTeacher = async (identifier: string, pass: string): Promise<{ success: boolean; message: string; user?: User }> => {
-    const cleanId = identifier.trim().toLowerCase();
+    const cleanIdentifier = identifier.trim();
     const cleanPass = pass.trim();
 
     // 1. Check local state first
     let teacher = users.find(
-      u => u.role === 'guru' && (((u.email || '').toLowerCase() === cleanId) || (u.idNumber && u.idNumber.trim() === identifier.trim()))
+      u => u.role === 'guru' && (
+        ((u.email || '').toLowerCase() === cleanIdentifier.toLowerCase()) ||
+        (u.idNumber && u.idNumber.trim() === cleanIdentifier)
+      )
     );
 
     // 2. If not found, live fetch directly from Supabase
     if (!teacher && isSupabaseConfigured && supabase) {
       try {
-        const { data } = await (supabase as any)
+        // Query by id_number (NIP)
+        const { data: byIdNumber, error: err1 } = await (supabase as any)
           .from('users')
           .select('*')
-          .or(`id_number.eq.${identifier.trim()},email.ilike.${identifier.trim()}`)
+          .eq('id_number', cleanIdentifier)
           .maybeSingle();
+
+        let data = byIdNumber;
+
+        // Query by email if not found
+        if (!data && cleanIdentifier.includes('@')) {
+          const { data: byEmail } = await (supabase as any)
+            .from('users')
+            .select('*')
+            .ilike('email', cleanIdentifier)
+            .maybeSingle();
+          data = byEmail;
+        }
+
+        if (err1) {
+          console.error('Supabase query error:', err1);
+        }
 
         if (data) {
           teacher = {

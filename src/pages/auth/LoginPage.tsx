@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLMS } from '../../context/LMSContext';
+import { isSupabaseConfigured } from '../../services/supabaseClient';
 import { GraduationCap, UserCheck, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -162,10 +163,16 @@ export const LoginPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Security badge footer */}
-        <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-slate-400 font-medium">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Sistem Ujian Terproteksi & Anti-Cheat Aktif</span>
+        {/* Security & Database Status footer */}
+        <div className="flex flex-col items-center justify-center gap-1 text-[10px] sm:text-xs text-slate-400 font-medium">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Sistem Ujian Terproteksi & Anti-Cheat Aktif</span>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-slate-400">
+            <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></span>
+            <span>Database Cloud: {isSupabaseConfigured ? 'Terhubung (Supabase Live)' : 'Offline / Local Storage'}</span>
+          </div>
         </div>
       </div>
     </div>
