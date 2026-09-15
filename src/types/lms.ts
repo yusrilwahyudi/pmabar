@@ -34,8 +34,9 @@ export interface ClassMember {
   classId: string;
   studentId: string;
   studentName: string;
-  studentAvatar: string;
-  studentEmail: string;
+  studentAvatar?: string;
+  studentEmail?: string;
+  studentNisn?: string;
   joinedAt: string;
 }
 
