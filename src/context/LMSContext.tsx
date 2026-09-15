@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   User,
+  UserRole,
   ClassItem,
   ClassMember,
   LearningItem,
@@ -16,7 +17,7 @@ import {
   INITIAL_STUDENT_PROGRESS
 } from '../services/mockData';
 import { supabaseService } from '../services/supabaseService';
-import { isSupabaseConfigured } from '../services/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 interface LMSContextType {
   currentUser: User | null;
