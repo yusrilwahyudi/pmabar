@@ -11,25 +11,28 @@ export const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
       if (activeRole === 'siswa') {
-        const res = loginStudent(identifier.trim(), password.trim());
+        const res = await loginStudent(identifier.trim(), password.trim());
         if (!res.success) {
           setErrorMessage(res.message);
         }
       } else {
-        const res = loginTeacher(identifier.trim(), password.trim());
+        const res = await loginTeacher(identifier.trim(), password.trim());
         if (!res.success) {
           setErrorMessage(res.message);
         }
       }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Terjadi kesalahan saat masuk.');
+    } finally {
       setIsLoading(false);
-    }, 350);
+    }
   };
 
   return (

@@ -31,8 +31,8 @@ interface LMSContextType {
   isCloudConnected: boolean;
 
   // Authentication
-  loginStudent: (nisn: string, password: string) => { success: boolean; message: string; user?: User };
-  loginTeacher: (identifier: string, password: string) => { success: boolean; message: string; user?: User };
+  loginStudent: (nisn: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
+  loginTeacher: (identifier: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
   logout: () => void;
   changePassword: (userId: string, oldPass: string, newPass: string) => { success: boolean; message: string };
 
@@ -174,14 +174,46 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [studentProgressList]);
 
   // Auth Handlers
-  const loginStudent = (nisn: string, pass: string) => {
-    const student = users.find(u => u.role === 'siswa' && u.idNumber === nisn);
+  const loginStudent = async (nisn: string, pass: string): Promise<{ success: boolean; message: string; user?: User }> => {
+    const cleanNisn = nisn.trim();
+    const cleanPass = pass.trim();
+
+    // 1. Check local state first
+    let student = users.find(u => u.role === 'siswa' && u.idNumber && u.idNumber.trim() === cleanNisn);
+
+    // 2. If not found, live fetch directly from Supabase
+    if (!student && isSupabaseConfigured && supabase) {
+      try {
+        const { data } = await (supabase as any)
+          .from('users')
+          .select('*')
+          .eq('id_number', cleanNisn)
+          .maybeSingle();
+
+        if (data) {
+          student = {
+            id: data.id,
+            name: data.name || 'Siswa',
+            email: data.email || `${data.id_number}@siswa.smkn5gowa.sch.id`,
+            role: (data.role || 'siswa') as UserRole,
+            avatar: data.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${data.id_number}`,
+            idNumber: data.id_number,
+            password: data.password,
+            isPasswordChanged: Boolean(data.is_password_changed)
+          };
+          setUsers(prev => [...prev.filter(u => u.id !== student!.id), student!]);
+        }
+      } catch (err) {
+        console.error('Error fetching student from Supabase:', err);
+      }
+    }
+
     if (!student) {
       return { success: false, message: 'Nomor NISN tidak terdaftar dalam sistem.' };
     }
 
-    const expectedPass = student.password || student.idNumber;
-    if (pass !== expectedPass) {
+    const expectedPass = (student.password || student.idNumber || '').trim();
+    if (cleanPass !== expectedPass) {
       return { success: false, message: 'Kata sandi salah. Silakan coba lagi.' };
     }
 
@@ -189,16 +221,48 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'Login berhasil', user: student };
   };
 
-  const loginTeacher = (identifier: string, pass: string) => {
-    const teacher = users.find(
-      u => u.role === 'guru' && (u.email.toLowerCase() === identifier.toLowerCase() || u.idNumber === identifier)
+  const loginTeacher = async (identifier: string, pass: string): Promise<{ success: boolean; message: string; user?: User }> => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPass = pass.trim();
+
+    // 1. Check local state first
+    let teacher = users.find(
+      u => u.role === 'guru' && (((u.email || '').toLowerCase() === cleanId) || (u.idNumber && u.idNumber.trim() === identifier.trim()))
     );
+
+    // 2. If not found, live fetch directly from Supabase
+    if (!teacher && isSupabaseConfigured && supabase) {
+      try {
+        const { data } = await (supabase as any)
+          .from('users')
+          .select('*')
+          .or(`id_number.eq.${identifier.trim()},email.ilike.${identifier.trim()}`)
+          .maybeSingle();
+
+        if (data) {
+          teacher = {
+            id: data.id,
+            name: data.name || 'Guru',
+            email: data.email || `${data.id_number}@guru.smkn5gowa.sch.id`,
+            role: (data.role || 'guru') as UserRole,
+            avatar: data.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
+            idNumber: data.id_number,
+            password: data.password,
+            isPasswordChanged: Boolean(data.is_password_changed)
+          };
+          setUsers(prev => [...prev.filter(u => u.id !== teacher!.id), teacher!]);
+        }
+      } catch (err) {
+        console.error('Error fetching teacher from Supabase:', err);
+      }
+    }
+
     if (!teacher) {
       return { success: false, message: 'Akun guru/pengajar tidak ditemukan.' };
     }
 
-    const expectedPass = teacher.password || 'guru123password';
-    if (pass !== expectedPass) {
+    const expectedPass = (teacher.password || 'guru123password').trim();
+    if (cleanPass !== expectedPass) {
       return { success: false, message: 'Kata sandi pengajar salah.' };
     }
 
