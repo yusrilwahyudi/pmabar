@@ -345,29 +345,29 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
 
             {currentQ.type === 'mcq' && currentQ.options && (
               <div className="space-y-3 select-none">
-                {currentQ.options.map(opt => {
+                {currentQ.options.map((opt, optIdx) => {
                   const isSelected = answers[currentQ.id]?.selectedOptionId === opt.id;
 
                   return (
                     <div
                       key={opt.id}
                       onClick={() => handleSelectOption(currentQ.id, opt.id)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
                         isSelected
                           ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs'
                           : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/80'
                       }`}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                        className={`w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center flex-shrink-0 transition-all ${
                           isSelected
-                            ? 'border-indigo-600 bg-indigo-600'
-                            : 'border-slate-400 bg-white'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-white border border-slate-200 text-slate-700'
                         }`}
                       >
-                        {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                        {String.fromCharCode(65 + optIdx)}
                       </div>
-                      <span className={`text-xs md:text-sm font-semibold ${isSelected ? 'text-indigo-950 font-bold' : 'text-slate-700'}`}>
+                      <span className={`text-xs md:text-sm font-medium leading-relaxed ${isSelected ? 'text-indigo-950 font-bold' : 'text-slate-700'}`}>
                         {opt.text}
                       </span>
                     </div>

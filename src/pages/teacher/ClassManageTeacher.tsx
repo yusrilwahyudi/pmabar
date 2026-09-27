@@ -140,7 +140,8 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
         { id: 'opt-1', text: '', isCorrect: true },
         { id: 'opt-2', text: '', isCorrect: false },
         { id: 'opt-3', text: '', isCorrect: false },
-        { id: 'opt-4', text: '', isCorrect: false }
+        { id: 'opt-4', text: '', isCorrect: false },
+        { id: 'opt-5', text: '', isCorrect: false }
       ]
     }
   ]);
@@ -302,7 +303,8 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
           { id: 'opt-1', text: '', isCorrect: true },
           { id: 'opt-2', text: '', isCorrect: false },
           { id: 'opt-3', text: '', isCorrect: false },
-          { id: 'opt-4', text: '', isCorrect: false }
+          { id: 'opt-4', text: '', isCorrect: false },
+          { id: 'opt-5', text: '', isCorrect: false }
         ]
       }
     ]);
@@ -334,7 +336,21 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
     setEnableAntiCheat(item.enableAntiCheat ?? true);
 
     if (item.questions && item.questions.length > 0) {
-      setQuestions(JSON.parse(JSON.stringify(item.questions)));
+      const cloned: AssessmentQuestion[] = JSON.parse(JSON.stringify(item.questions));
+      // Pastikan semua soal pilihan ganda memiliki 5 opsi (A sampai E)
+      cloned.forEach(q => {
+        if (q.type === 'mcq' && q.options) {
+          while (q.options.length < 5) {
+            const nextIdx = q.options.length + 1;
+            q.options.push({
+              id: `opt-${Date.now()}-${nextIdx}`,
+              text: '',
+              isCorrect: false
+            });
+          }
+        }
+      });
+      setQuestions(cloned);
     } else {
       setQuestions([
         {
@@ -347,7 +363,8 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
             { id: 'opt-1', text: '', isCorrect: true },
             { id: 'opt-2', text: '', isCorrect: false },
             { id: 'opt-3', text: '', isCorrect: false },
-            { id: 'opt-4', text: '', isCorrect: false }
+            { id: 'opt-4', text: '', isCorrect: false },
+            { id: 'opt-5', text: '', isCorrect: false }
           ]
         }
       ]);
@@ -389,7 +406,8 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
               { id: `opt-${Date.now()}-1`, text: '', isCorrect: true },
               { id: `opt-${Date.now()}-2`, text: '', isCorrect: false },
               { id: `opt-${Date.now()}-3`, text: '', isCorrect: false },
-              { id: `opt-${Date.now()}-4`, text: '', isCorrect: false }
+              { id: `opt-${Date.now()}-4`, text: '', isCorrect: false },
+              { id: `opt-${Date.now()}-5`, text: '', isCorrect: false }
             ]
           : undefined
     };
@@ -1397,15 +1415,21 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                                     name={`correct-${q.id}`}
                                     checked={opt.isCorrect}
                                     onChange={() => handleSetCorrectOption(qIdx, optIdx)}
-                                    className="w-4 h-4 text-indigo-600"
+                                    className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
+                                    title="Pilih sebagai Kunci Jawaban"
                                   />
+                                  <span className={`w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 transition-colors ${
+                                    opt.isCorrect ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                  }`}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </span>
                                   <input
                                     type="text"
                                     required
                                     placeholder={`Pilihan ${String.fromCharCode(65 + optIdx)}`}
                                     value={opt.text}
                                     onChange={e => handleUpdateOptionText(qIdx, optIdx, e.target.value)}
-                                    className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                                    className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:bg-white"
                                   />
                                 </div>
                               ))}
