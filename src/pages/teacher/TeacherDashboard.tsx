@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { ClassItem } from '../../types/lms';
+import { getTeacherAvatar } from '../../utils/avatar';
 
 interface TeacherDashboardProps {
   onSelectClass: (classId: string) => void;
@@ -77,7 +78,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-indigo-50 p-1 border border-indigo-100 shadow-sm shrink-0 flex items-center justify-center overflow-hidden">
               <img
-                src={currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Guru&gender=male'}
+                src={getTeacherAvatar(currentUser?.name || teacherName)}
                 alt={teacherName}
                 className="w-full h-full object-cover rounded-xl"
               />

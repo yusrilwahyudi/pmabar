@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bell, Users, Plus, Key, LogOut, ChevronDown, BookOpen, Award, Layers } from 'lucide-react';
 import { useLMS } from '../../context/LMSContext';
+import { getUserAvatar } from '../../utils/avatar';
 
 interface NavbarProps {
   activeTab: string;
@@ -135,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 sm:gap-2 p-1 rounded-xl hover:bg-slate-100 transition-all text-left"
               >
                 <img
-                  src={currentUser.avatar}
+                  src={getUserAvatar(currentUser)}
                   alt={currentUser.name}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl object-cover ring-1 ring-slate-200"
                 />

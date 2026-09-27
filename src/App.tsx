@@ -17,6 +17,7 @@ import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { StudentManagerModal } from './components/modals/StudentManagerModal';
 import { PastelClassCard } from './components/cards/PastelClassCard';
 import { ShieldCheck, Key, LogOut } from 'lucide-react';
+import { getUserAvatar } from './utils/avatar';
 
 export const AppContent: React.FC = () => {
   const { currentUser, classes, classMembers, logout } = useLMS();
@@ -198,7 +199,7 @@ export const AppContent: React.FC = () => {
               <div className="max-w-xl mx-auto py-8">
                 <div className="bg-white rounded-4xl p-8 border border-slate-200/80 shadow-soft text-center space-y-6">
                   <img
-                    src={currentUser.avatar}
+                    src={getUserAvatar(currentUser)}
                     alt={currentUser.name}
                     className="w-24 h-24 rounded-3xl mx-auto object-cover ring-4 ring-indigo-500/20 shadow-md"
                   />

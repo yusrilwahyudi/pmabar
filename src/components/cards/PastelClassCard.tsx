@@ -3,6 +3,7 @@ import { ClassItem, PastelTheme } from '../../types/lms';
 import { ProgressBar } from '../common/ProgressBar';
 import { BookOpen, Lock, ArrowRight, Key, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useLMS } from '../../context/LMSContext';
+import { getTeacherAvatar } from '../../utils/avatar';
 
 interface PastelClassCardProps {
   classItem: ClassItem;
@@ -117,7 +118,7 @@ export const PastelClassCard: React.FC<PastelClassCardProps> = ({ classItem, onS
           <div className="relative">
             <div className="w-14 h-14 rounded-2xl bg-white/90 shadow-sm border border-black/5 flex items-center justify-center text-3xl overflow-hidden p-1">
               <img
-                src={classItem.teacherAvatar}
+                src={getTeacherAvatar(classItem.teacherName)}
                 alt={classItem.teacherName}
                 className="w-full h-full object-cover rounded-xl"
               />

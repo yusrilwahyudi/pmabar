@@ -1,9 +1,9 @@
 /**
  * Avatar Generator Utility for P Mabar LMS
- * Supports:
+ * Guarantees:
  * - Siswa: Robot Bottts vector avatar
- * - Guru Laki-laki: Illustrated Male Teacher avatar
- * - Guru Perempuan: Illustrated Female Teacher (including hijab / modern styles)
+ * - Guru Laki-laki: Handsome, professional male teacher with short hair & friendly smile (no flowers/dizzy faces)
+ * - Guru Perempuan: Professional female teacher with elegant hair / hijab & friendly smile
  */
 
 export function detectTeacherGender(name: string): 'male' | 'female' {
@@ -31,11 +31,11 @@ export function getTeacherAvatar(name: string, gender?: 'male' | 'female'): stri
   const seed = encodeURIComponent(name.trim() || 'Guru');
 
   if (finalGender === 'female') {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&gender=female&facialHairChance=0&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&top=hijab,longHairBob,longHairStraight,longHairCurly&accessoriesChance=0&facialHairChance=0&eyes=default,happy&mouth=smile,default&eyebrows=defaultNatural,default&clothing=collarAndSweater,shirtCrewNeck&clothingColor=ff5c5c,5199e4,9287ff&backgroundColor=ffd5dc,ffdfbf,c0aede`;
   }
 
-  // Male Teacher
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&gender=male&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  // Male Teacher: strictly short male hair, smile, collar sweater/shirt
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&top=shortHairShortFlat,shortHairShortWaved,shortHairTheCaesar,shortHairSides&accessoriesChance=0&facialHairChance=0&eyes=default,happy&mouth=smile,default&eyebrows=defaultNatural,default&clothing=collarAndSweater,shirtCrewNeck&clothingColor=262e33,5199e4,25557c&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 }
 
 export function getStudentAvatar(idNumberOrName: string): string {
@@ -44,10 +44,6 @@ export function getStudentAvatar(idNumberOrName: string): string {
 }
 
 export function getUserAvatar(user: { role?: string; name: string; idNumber?: string; avatar?: string; gender?: 'male' | 'female' }): string {
-  if (user.avatar && !user.avatar.includes('images.unsplash.com')) {
-    return user.avatar;
-  }
-
   if (user.role === 'guru') {
     return getTeacherAvatar(user.name, user.gender);
   }
