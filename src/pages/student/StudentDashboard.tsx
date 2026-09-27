@@ -39,48 +39,41 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   }).filter(item => item.nextItem);
 
   return (
-    <div className="space-y-6 md:space-y-8 pb-16">
-      {/* 1. HERO HEADER: Greeting & Student Info */}
-      <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 rounded-3xl md:rounded-4xl p-5 sm:p-7 md:p-8 text-white shadow-lg relative overflow-hidden">
-        {/* Subtle Background Glow */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-16 w-48 h-48 rounded-full bg-indigo-400/20 blur-xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 sm:gap-4">
-            <img
-              src={currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser?.name}`}
-              alt={currentUser?.name}
-              className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-white/10 p-1 border border-white/20 shadow-md shrink-0 object-cover"
-            />
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-white/20 text-white backdrop-blur-md">
+    <div className="space-y-4 sm:space-y-6 pb-16">
+      {/* 1. SLIM & COMPACT HERO HEADER */}
+      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 text-white shadow-sm relative overflow-hidden">
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 p-0.5 border border-white/20 shadow-xs shrink-0 flex items-center justify-center overflow-hidden">
+              <img
+                src={currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser?.name}`}
+                alt={currentUser?.name}
+                className="w-full h-full object-cover rounded-lg"
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-2 py-0.2 rounded-md text-[9px] sm:text-[10px] font-bold bg-white/20 text-white">
                   Siswa SMKN 5 Gowa
                 </span>
-                <span className="text-[11px] sm:text-xs text-indigo-200 font-mono">
+                <span className="text-[10px] sm:text-xs text-indigo-200 font-mono">
                   NISN: {currentUser?.idNumber}
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mt-1">
+              <h1 className="text-sm sm:text-lg font-bold text-white tracking-tight truncate mt-0.5">
                 Halo, {currentUser?.name?.split(' ')[0] || 'Siswa'} 👋
               </h1>
-              <p className="text-xs sm:text-sm text-indigo-100 mt-0.5">
-                {enrolledClasses.length > 0
-                  ? `Anda terdaftar dalam ${enrolledClasses.length} ruang kelas aktif.`
-                  : 'Siap untuk memulai petualangan belajar Anda hari ini.'}
-              </p>
             </div>
           </div>
 
-          {/* Quick Stats Pill / Desktop Action */}
+          {/* Desktop Join Class button */}
           {enrolledClasses.length > 0 && (
             <div className="hidden sm:flex items-center gap-2 shrink-0">
               <button
                 onClick={onOpenJoinClassModal}
-                className="px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all backdrop-blur-md border border-white/20"
+                className="px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all backdrop-blur-md border border-white/20"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>+ Gabung Kelas</span>
               </button>
             </div>
