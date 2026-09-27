@@ -414,6 +414,60 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
     setQuestions(prev => [...prev, newQ]);
   };
 
+  const handleSelectAssessmentFormat = (fmt: AssessmentFormat) => {
+    setAssessmentFormat(fmt);
+    if (fmt === 'essay') {
+      setQuestions(prev =>
+        prev.map(q => ({
+          ...q,
+          type: 'essay',
+          options: undefined
+        }))
+      );
+    } else if (fmt === 'mcq') {
+      setQuestions(prev =>
+        prev.map(q => ({
+          ...q,
+          type: 'mcq',
+          options: q.options && q.options.length >= 5 ? q.options : [
+            { id: `opt-${Date.now()}-1`, text: '', isCorrect: true },
+            { id: `opt-${Date.now()}-2`, text: '', isCorrect: false },
+            { id: `opt-${Date.now()}-3`, text: '', isCorrect: false },
+            { id: `opt-${Date.now()}-4`, text: '', isCorrect: false },
+            { id: `opt-${Date.now()}-5`, text: '', isCorrect: false }
+          ]
+        }))
+      );
+    }
+  };
+
+  const handleChangeQuestionType = (qIdx: number, type: 'mcq' | 'essay') => {
+    setQuestions(prev =>
+      prev.map((q, i) => {
+        if (i !== qIdx) return q;
+        if (type === 'mcq') {
+          return {
+            ...q,
+            type: 'mcq',
+            options: q.options && q.options.length >= 5 ? q.options : [
+              { id: `opt-${Date.now()}-1`, text: '', isCorrect: true },
+              { id: `opt-${Date.now()}-2`, text: '', isCorrect: false },
+              { id: `opt-${Date.now()}-3`, text: '', isCorrect: false },
+              { id: `opt-${Date.now()}-4`, text: '', isCorrect: false },
+              { id: `opt-${Date.now()}-5`, text: '', isCorrect: false }
+            ]
+          };
+        } else {
+          return {
+            ...q,
+            type: 'essay',
+            options: undefined
+          };
+        }
+      })
+    );
+  };
+
   const handleRemoveQuestion = (idx: number) => {
     setQuestions(prev => prev.filter((_, i) => i !== idx));
   };
@@ -1295,7 +1349,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
-                        onClick={() => setAssessmentFormat('mcq')}
+                        onClick={() => handleSelectAssessmentFormat('mcq')}
                         className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
                           assessmentFormat === 'mcq'
                             ? 'bg-white border-indigo-600 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
@@ -1306,7 +1360,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setAssessmentFormat('essay')}
+                        onClick={() => handleSelectAssessmentFormat('essay')}
                         className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
                           assessmentFormat === 'essay'
                             ? 'bg-white border-indigo-600 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
@@ -1317,7 +1371,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setAssessmentFormat('upload')}
+                        onClick={() => handleSelectAssessmentFormat('upload')}
                         className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
                           assessmentFormat === 'upload'
                             ? 'bg-white border-indigo-600 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
@@ -1377,36 +1431,74 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                       </div>
 
                       {questions.map((q, qIdx) => (
-                        <div key={q.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 space-y-2">
+                        <div key={q.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 space-y-2.5">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-indigo-700">
-                              Nomor {qIdx + 1} ({q.type === 'mcq' ? 'Pilihan Ganda' : 'Esai'})
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-indigo-700">
+                                Nomor {qIdx + 1}
+                              </span>
+                              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[10px] font-semibold">
+                                <button
+                                  type="button"
+                                  onClick={() => handleChangeQuestionType(qIdx, 'mcq')}
+                                  className={`px-2 py-0.5 rounded-md transition-all ${
+                                    q.type === 'mcq' ? 'bg-white text-indigo-700 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                                  }`}
+                                >
+                                  Pilihan Ganda
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleChangeQuestionType(qIdx, 'essay')}
+                                  className={`px-2 py-0.5 rounded-md transition-all ${
+                                    q.type === 'essay' ? 'bg-white text-indigo-700 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                                  }`}
+                                >
+                                  Esai / Uraian
+                                </button>
+                              </div>
+                            </div>
                             {questions.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveQuestion(qIdx)}
-                                className="text-slate-400 hover:text-rose-600 text-xs"
+                                className="text-slate-400 hover:text-rose-600 text-xs font-medium px-2 py-0.5 rounded-lg hover:bg-rose-50 transition-colors"
                               >
                                 Hapus
                               </button>
                             )}
                           </div>
 
-                          <input
-                            type="text"
-                            required
-                            placeholder="Tuliskan teks pertanyaan di sini..."
-                            value={q.questionText}
-                            onChange={e => handleUpdateQuestionText(qIdx, e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium"
-                          />
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                              {q.type === 'essay' ? 'Pertanyaan / Instruksi Soal Esai:' : 'Pertanyaan Soal Pilihan Ganda:'}
+                            </label>
+                            {q.type === 'essay' ? (
+                              <textarea
+                                required
+                                rows={3}
+                                placeholder="Tuliskan pertanyaan esai atau instruksi uraian secara lengkap di sini..."
+                                value={q.questionText}
+                                onChange={e => handleUpdateQuestionText(qIdx, e.target.value)}
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Tuliskan teks pertanyaan di sini..."
+                                value={q.questionText}
+                                onChange={e => handleUpdateQuestionText(qIdx, e.target.value)}
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
+                              />
+                            )}
+                          </div>
 
                           {/* Options for MCQ */}
                           {q.type === 'mcq' && q.options && (
-                            <div className="space-y-1.5 pl-2 pt-1">
+                            <div className="space-y-1.5 pl-2 pt-1 border-t border-slate-100 mt-2">
                               <span className="text-[10px] text-slate-400 font-bold block">
-                                * Centang radio untuk menandai kunci jawaban yang benar:
+                                * Centang radio untuk menandai kunci jawaban yang benar (Opsi A - E):
                               </span>
                               {q.options.map((opt, optIdx) => (
                                 <div key={opt.id} className="flex items-center gap-2">
@@ -1429,10 +1521,23 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                                     placeholder={`Pilihan ${String.fromCharCode(65 + optIdx)}`}
                                     value={opt.text}
                                     onChange={e => handleUpdateOptionText(qIdx, optIdx, e.target.value)}
-                                    className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:bg-white"
+                                    className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
                                   />
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {/* Essay guidance banner */}
+                          {q.type === 'essay' && (
+                            <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 flex items-start gap-2.5 mt-1">
+                              <span className="text-base leading-none">✍️</span>
+                              <div>
+                                <span className="font-bold block">Format Jawaban Siswa (Esai / Uraian)</span>
+                                <span className="text-amber-800/90 text-[10px] block mt-0.5">
+                                  Siswa akan menjawab dengan mengetikkan teks uraian secara mandiri pada kotak teks saat ujian berlangsung. Guru dapat memberikan nilai/koreksi setelah ujian dikumpulkan.
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>
