@@ -1,4 +1,5 @@
 import { User, ClassItem, ClassMember, LearningItem, Submission, StudentProgress } from '../types/lms';
+import { getTeacherAvatar } from '../utils/avatar';
 
 // Akun Pengajar Resmi (Yusril Wahyudi, S.Pd)
 export const INITIAL_USERS: User[] = [
@@ -7,7 +8,7 @@ export const INITIAL_USERS: User[] = [
     name: 'Yusril Wahyudi, S.Pd',
     email: 'yusril.wahyudi@smkn5gowa.sch.id',
     role: 'guru',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: getTeacherAvatar('Yusril Wahyudi, S.Pd', 'male'),
     idNumber: '199304122020121005',
     password: 'guru123password',
     isPasswordChanged: false

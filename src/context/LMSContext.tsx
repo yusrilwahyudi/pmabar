@@ -18,6 +18,7 @@ import {
 } from '../services/mockData';
 import { supabaseService } from '../services/supabaseService';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { getUserAvatar, getTeacherAvatar, getStudentAvatar } from '../utils/avatar';
 
 interface LMSContextType {
   currentUser: User | null;
@@ -201,7 +202,9 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             name: data.name || 'Siswa',
             email: data.email || `${data.id_number}@siswa.smkn5gowa.sch.id`,
             role: (data.role || 'siswa') as UserRole,
-            avatar: data.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${data.id_number}`,
+            avatar: (!data.avatar || data.avatar.includes('images.unsplash.com'))
+              ? getStudentAvatar(data.id_number || data.name)
+              : data.avatar,
             idNumber: data.id_number,
             password: data.password,
             isPasswordChanged: Boolean(data.is_password_changed)
@@ -220,6 +223,11 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const expectedPass = (student.password || student.idNumber || '').trim();
     if (cleanPass !== expectedPass) {
       return { success: false, message: 'Kata sandi salah. Silakan coba lagi.' };
+    }
+
+    // Ensure avatar is clean
+    if (!student.avatar || student.avatar.includes('images.unsplash.com')) {
+      student.avatar = getStudentAvatar(student.idNumber || student.name);
     }
 
     setCurrentUser(student);
@@ -270,7 +278,9 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             name: data.name || 'Guru',
             email: data.email || `${data.id_number}@guru.smkn5gowa.sch.id`,
             role: (data.role || 'guru') as UserRole,
-            avatar: data.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
+            avatar: (!data.avatar || data.avatar.includes('images.unsplash.com'))
+              ? getTeacherAvatar(data.name || 'Guru')
+              : data.avatar,
             idNumber: data.id_number,
             password: data.password,
             isPasswordChanged: Boolean(data.is_password_changed)
@@ -289,6 +299,11 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const expectedPass = (teacher.password || 'guru123password').trim();
     if (cleanPass !== expectedPass) {
       return { success: false, message: 'Kata sandi pengajar salah.' };
+    }
+
+    // Ensure teacher avatar is clean vector illustration
+    if (!teacher.avatar || teacher.avatar.includes('images.unsplash.com')) {
+      teacher.avatar = getTeacherAvatar(teacher.name);
     }
 
     setCurrentUser(teacher);

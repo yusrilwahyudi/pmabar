@@ -74,16 +74,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       {/* 1. Welcome & Stats Bar */}
       <div className="bg-white rounded-4xl p-6 md:p-8 border border-slate-200/80 shadow-soft">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700">
-              Meja Guru & Pengajar
-            </span>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mt-2">
-              Halo, {teacherName}
-            </h1>
-            <p className="text-xs md:text-sm text-slate-500 mt-1">
-              Kelola materi ajar terstruktur, monitor pengerjaan kuis siswa, dan berikan nilai tugas.
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-indigo-50 p-1 border border-indigo-100 shadow-sm shrink-0 flex items-center justify-center overflow-hidden">
+              <img
+                src={currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Guru&gender=male'}
+                alt={teacherName}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            </div>
+            <div>
+              <span className="px-3 py-1 rounded-full text-[10px] md:text-xs font-bold bg-indigo-50 text-indigo-700">
+                Meja Guru & Pengajar
+              </span>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight mt-1">
+                Halo, {teacherName}
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kelola materi ajar terstruktur, monitor pengerjaan kuis siswa, dan berikan nilai tugas.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

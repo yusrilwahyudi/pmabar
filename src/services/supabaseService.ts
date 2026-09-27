@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { User, ClassItem, ClassMember, LearningItem, Submission, StudentProgress } from '../types/lms';
+import { getUserAvatar, getTeacherAvatar } from '../utils/avatar';
 
 export const supabaseService = {
   // Fetch All Initial Data
@@ -24,16 +25,20 @@ export const supabaseService = {
         client.from('student_progress').select('*')
       ]);
 
-      const users: User[] = (usersRes.data || []).map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        avatar: u.avatar,
-        idNumber: u.id_number,
-        password: u.password,
-        isPasswordChanged: u.is_password_changed
-      }));
+      const users: User[] = (usersRes.data || []).map((u: any) => {
+        const userObj: User = {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          avatar: u.avatar,
+          idNumber: u.id_number,
+          password: u.password,
+          isPasswordChanged: u.is_password_changed
+        };
+        userObj.avatar = getUserAvatar(userObj);
+        return userObj;
+      });
 
       const classes: ClassItem[] = (classesRes.data || []).map((c: any) => ({
         id: c.id,
@@ -42,7 +47,9 @@ export const supabaseService = {
         code: c.code,
         teacherId: c.teacher_id,
         teacherName: c.teacher_name,
-        teacherAvatar: c.teacher_avatar,
+        teacherAvatar: (!c.teacher_avatar || c.teacher_avatar.includes('images.unsplash.com'))
+          ? getTeacherAvatar(c.teacher_name)
+          : c.teacher_avatar,
         theme: c.theme,
         description: c.description,
         totalModules: c.total_modules,
