@@ -143,12 +143,6 @@ export const PastelClassCard: React.FC<PastelClassCardProps> = ({ classItem, onS
             <BookOpen className="w-4 h-4 text-slate-500" />
             <span>{totalCount || classItem.totalModules} modul materi</span>
           </div>
-          {classItem.sequentialLocking && (
-            <div className="flex items-center gap-1 text-[11px] text-indigo-700 bg-indigo-50/80 px-2 py-0.5 rounded-lg">
-              <Lock className="w-3 h-3" />
-              <span>Jalur Bertahap</span>
-            </div>
-          )}
         </div>
       </div>
 
