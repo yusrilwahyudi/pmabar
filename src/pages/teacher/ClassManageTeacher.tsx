@@ -1343,42 +1343,40 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
               {/* OPTION 3: PENUGASAN & ASESMEN FLEKSIBEL (MCQ, ESSAY, UPLOAD) */}
               {newItemType === 'assessment' && (
                 <div className="space-y-4 p-4 bg-slate-50 rounded-3xl border border-slate-200/80">
-                  {/* Format Selection */}
+                  {/* Format Selection - Merged into 2 Clean Types */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Pilih Format Kuis / Penugasan</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Pilih Format Asesmen / Penugasan</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
                         type="button"
-                        onClick={() => handleSelectAssessmentFormat('mcq')}
-                        className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
-                          assessmentFormat === 'mcq'
+                        onClick={() => setAssessmentFormat('mcq')}
+                        className={`p-3 rounded-2xl border text-left text-xs font-bold transition-all flex items-center gap-3 ${
+                          assessmentFormat !== 'upload'
                             ? 'bg-white border-indigo-600 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200 border-slate-200/80'
                         }`}
                       >
-                        📝 Kuis Pilihan Ganda
+                        <span className="text-xl">📝</span>
+                        <div>
+                          <span className="block font-extrabold text-xs text-slate-900">Kuis & Ujian Online</span>
+                          <span className="block text-[10px] font-normal text-slate-500">Pilihan Ganda (A-E) / Esai Uraian</span>
+                        </div>
                       </button>
+
                       <button
                         type="button"
-                        onClick={() => handleSelectAssessmentFormat('essay')}
-                        className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
-                          assessmentFormat === 'essay'
-                            ? 'bg-white border-indigo-600 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        ✍️ Soal Esai
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectAssessmentFormat('upload')}
-                        className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
+                        onClick={() => setAssessmentFormat('upload')}
+                        className={`p-3 rounded-2xl border text-left text-xs font-bold transition-all flex items-center gap-3 ${
                           assessmentFormat === 'upload'
                             ? 'bg-white border-indigo-600 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200 border-slate-200/80'
                         }`}
                       >
-                        📤 Upload File / Tugas
+                        <span className="text-xl">📤</span>
+                        <div>
+                          <span className="block font-extrabold text-xs text-slate-900">Upload File / Tugas</span>
+                          <span className="block text-[10px] font-normal text-slate-500">Pengumpulan Dokumen / Proyek Siswa</span>
+                        </div>
                       </button>
                     </div>
                   </div>
@@ -1407,8 +1405,8 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                     </div>
                   </div>
 
-                  {/* Question Builder Template for MCQ & Essay */}
-                  {(assessmentFormat === 'mcq' || assessmentFormat === 'essay') && (
+                  {/* Question Builder Template for Online Quiz (MCQ & Essay) */}
+                  {assessmentFormat !== 'upload' ? (
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-slate-800">Daftar Soal & Kunci Jawaban</label>
@@ -1542,25 +1540,36 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                           )}
                         </div>
                       ))}
-                    </div>
-                  )}
 
-                  {/* Anti-cheat toggle */}
-                  <div className="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <div>
-                        <span className="text-xs font-bold text-slate-800 block">Proteksi Ujian (Anti Copy-Paste & Tab Switch)</span>
-                        <span className="text-[10px] text-slate-400">Mencegah kecurangan siswa saat mengerjakan.</span>
+                      {/* Anti-cheat toggle for Online Quiz */}
+                      <div className="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 block">Proteksi Ujian (Anti Copy-Paste & Tab Switch)</span>
+                            <span className="text-[10px] text-slate-400">Mencegah kecurangan siswa saat mengerjakan kuis online.</span>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={enableAntiCheat}
+                          onChange={e => setEnableAntiCheat(e.target.checked)}
+                          className="w-4 h-4 rounded text-indigo-600"
+                        />
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={enableAntiCheat}
-                      onChange={e => setEnableAntiCheat(e.target.checked)}
-                      className="w-4 h-4 rounded text-indigo-600"
-                    />
-                  </div>
+                  ) : (
+                    /* Info for File Upload Task */
+                    <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                        <span className="text-lg">📁</span>
+                        <span>Format Pengumpulan Berkas / Tugas Mandiri</span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Siswa akan mengunggah berkas penugasan (format yang didukung: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px] text-slate-700">.pdf, .docx, .zip, .png, .jpg</code>). Tuliskan instruksi penugasan pada kolom deskripsi di atas.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
