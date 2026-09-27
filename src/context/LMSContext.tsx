@@ -72,7 +72,12 @@ interface LMSContextType {
 
   // Unified Submissions & Grading
   submitAssessment: (submissionData: Omit<Submission, 'id' | 'submittedAt'>) => Submission;
-  gradeSubmission: (submissionId: string, score: number, feedback: string) => void;
+  gradeSubmission: (
+    submissionId: string,
+    score: number,
+    feedback: string,
+    updatedAnswers?: Record<string, any>
+  ) => void;
 
   // Reset
   resetData: () => void;
@@ -730,7 +735,12 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newSubmission;
   };
 
-  const gradeSubmission = (submissionId: string, score: number, feedback: string) => {
+  const gradeSubmission = (
+    submissionId: string,
+    score: number,
+    feedback: string,
+    updatedAnswers?: Record<string, any>
+  ) => {
     setSubmissions(prev =>
       prev.map(sub => {
         if (sub.id === submissionId) {
@@ -738,6 +748,7 @@ export const LMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...sub,
             score,
             teacherFeedback: feedback,
+            answers: updatedAnswers ? updatedAnswers : sub.answers,
             gradedAt: new Date().toISOString()
           };
           supabaseService.saveSubmission(updated);

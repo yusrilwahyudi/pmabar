@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   Send,
   Trophy,
-  Award
+  Award,
+  ClipboardList
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -29,11 +30,13 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [finalResult, setFinalResult] = useState<{
-    totalScore: number;
+    hasEssay: boolean;
+    totalScore: number | null;
     maxScore: number;
     isPassed: boolean;
     correctMcqCount: number;
     totalMcqCount: number;
+    essayCount: number;
   } | null>(null);
 
   const studentName = currentUser?.name || 'Siswa';
@@ -113,15 +116,17 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
   const handleSubmitQuiz = () => {
     if (isSubmitted) return;
 
-    let totalScore = 0;
-    let maxScore = 0;
+    let autoMcqPoints = 0;
+    let totalPossiblePoints = 0;
     let correctMcqCount = 0;
     let totalMcqCount = 0;
+    let essayCount = 0;
 
     const formattedAnswers: Record<string, any> = {};
 
     questions.forEach(q => {
-      maxScore += q.points;
+      const qPoint = q.points || 25;
+      totalPossiblePoints += qPoint;
       const userAns = answers[q.id];
 
       if (q.type === 'mcq') {
@@ -130,25 +135,40 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
         const isCorrect = userAns?.selectedOptionId === correctOpt?.id;
 
         if (isCorrect) {
-          totalScore += q.points;
+          autoMcqPoints += qPoint;
           correctMcqCount++;
         }
 
         formattedAnswers[q.id] = {
           selectedOptionId: userAns?.selectedOptionId,
           isCorrect,
-          scoreEarned: isCorrect ? q.points : 0
+          scoreEarned: isCorrect ? qPoint : 0
         };
       } else {
+        essayCount++;
         formattedAnswers[q.id] = {
           essayAnswer: userAns?.essayAnswer || '',
-          scoreEarned: q.points
+          scoreEarned: undefined // Pending teacher manual grade!
         };
-        totalScore += q.points;
       }
     });
 
-    const isPassed = totalScore >= 70;
+    const hasEssay = essayCount > 0;
+    
+    // Normalisasi nilai ke skala 0 - 100
+    let finalNormalizedScore: number | null = null;
+    let isPassed = false;
+
+    if (!hasEssay) {
+      finalNormalizedScore = totalPossiblePoints > 0
+        ? Math.round((autoMcqPoints / totalPossiblePoints) * 100)
+        : 100;
+      isPassed = finalNormalizedScore >= 70;
+    }
+
+    const isLateCalculated = item.deadline
+      ? new Date() > new Date(item.deadline + 'T23:59:59')
+      : false;
 
     submitAssessment({
       learningItemId: item.id,
@@ -161,22 +181,24 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
       cheatStrikes,
       cheatLogs,
       isFlagged,
-      isLate: item.deadline ? new Date() > new Date(item.deadline) : false,
-      score: totalScore,
-      maxScore: maxScore || 100
+      isLate: isLateCalculated,
+      score: finalNormalizedScore,
+      maxScore: 100
     });
 
     setFinalResult({
-      totalScore,
-      maxScore: maxScore || 100,
+      hasEssay,
+      totalScore: finalNormalizedScore,
+      maxScore: 100,
       isPassed,
       correctMcqCount,
-      totalMcqCount
+      totalMcqCount,
+      essayCount
     });
 
     setIsSubmitted(true);
 
-    if (isPassed) {
+    if (isPassed && !hasEssay) {
       try {
         confetti({
           particleCount: 80,
@@ -199,45 +221,82 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
         <div className="bg-white rounded-4xl p-8 md:p-10 border border-slate-200/80 shadow-modal text-center">
           <div
             className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-md ${
-              finalResult.isPassed
+              finalResult.hasEssay
+                ? 'bg-amber-100 text-amber-600 shadow-amber-100'
+                : finalResult.isPassed
                 ? 'bg-emerald-100 text-emerald-600 shadow-emerald-100'
                 : 'bg-rose-100 text-rose-600 shadow-rose-100'
             }`}
           >
-            {finalResult.isPassed ? <Trophy className="w-10 h-10" /> : <AlertTriangle className="w-10 h-10" />}
+            {finalResult.hasEssay ? (
+              <ClipboardList className="w-10 h-10" />
+            ) : finalResult.isPassed ? (
+              <Trophy className="w-10 h-10" />
+            ) : (
+              <AlertTriangle className="w-10 h-10" />
+            )}
           </div>
 
           <span
             className={`px-3.5 py-1 rounded-full text-xs font-bold ${
-              finalResult.isPassed
+              finalResult.hasEssay
+                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                : finalResult.isPassed
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-rose-50 text-rose-700 border border-rose-200'
             }`}
           >
-            {finalResult.isPassed ? 'LULUS (MEMENUHI SYARAT)' : 'EVALUASI SELESAI'}
+            {finalResult.hasEssay
+              ? 'MENUNGGU KOREKSI GURU'
+              : finalResult.isPassed
+              ? 'LULUS (MEMENUHI SYARAT)'
+              : 'EVALUASI SELESAI'}
           </span>
 
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 mt-4 mb-2">
-            Hasil Pengerjaan Asesmen
+            {finalResult.hasEssay ? 'Jawaban Berhasil Terkirim' : 'Hasil Pengerjaan Asesmen'}
           </h2>
           <p className="text-xs text-slate-500 mb-8">{item.title}</p>
 
-          <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-6 flex items-center justify-around">
+          <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-6 flex flex-col sm:flex-row items-center justify-around gap-4">
             <div>
-              <span className="text-xs font-bold text-slate-400 block">Skor Akhir</span>
-              <span className="text-4xl font-black text-slate-900">{finalResult.totalScore}</span>
-              <span className="text-xs text-slate-400 font-bold block">/ {finalResult.maxScore} Poin</span>
+              <span className="text-xs font-bold text-slate-400 block">Status Nilai</span>
+              {finalResult.hasEssay ? (
+                <span className="text-lg font-black text-amber-600 block my-1">
+                  Menunggu Guru
+                </span>
+              ) : (
+                <span className="text-4xl font-black text-slate-900">
+                  {finalResult.totalScore}
+                </span>
+              )}
+              <span className="text-xs text-slate-400 font-bold block">
+                {finalResult.hasEssay ? 'Esai belum diperiksa' : '/ 100 Poin (Skala 100)'}
+              </span>
             </div>
 
-            <div className="h-12 w-[1px] bg-slate-200" />
+            <div className="hidden sm:block h-12 w-[1px] bg-slate-200" />
 
             <div>
-              <span className="text-xs font-bold text-slate-400 block">Pilihan Ganda Benar</span>
+              <span className="text-xs font-bold text-slate-400 block">Pilihan Ganda</span>
               <span className="text-2xl font-black text-emerald-600">
                 {finalResult.correctMcqCount} / {finalResult.totalMcqCount}
               </span>
-              <span className="text-xs text-slate-400 font-bold block">Koreksi Otomatis</span>
+              <span className="text-xs text-slate-400 font-bold block">Benar (Otomatis)</span>
             </div>
+
+            {finalResult.hasEssay && (
+              <>
+                <div className="hidden sm:block h-12 w-[1px] bg-slate-200" />
+                <div>
+                  <span className="text-xs font-bold text-slate-400 block">Soal Esai</span>
+                  <span className="text-2xl font-black text-indigo-600">
+                    {finalResult.essayCount} Soal
+                  </span>
+                  <span className="text-xs text-slate-400 font-bold block">Koreksi Manual</span>
+                </div>
+              </>
+            )}
           </div>
 
           {cheatStrikes > 0 && (

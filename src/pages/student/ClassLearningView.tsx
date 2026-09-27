@@ -239,7 +239,7 @@ export const ClassLearningView: React.FC<ClassLearningViewProps> = ({
         fileSize: uploadFileSize || '2.5 MB',
         fileUrl: 'https://example.com/files/' + uploadFileName,
         notes: assignmentNotes,
-        isLate: activeItem.deadline ? new Date() > new Date(activeItem.deadline) : false,
+        isLate: activeItem.deadline ? new Date() > new Date(activeItem.deadline + 'T23:59:59') : false,
         score: null,
         maxScore: activeItem.maxScore || 100
       });
@@ -314,183 +314,120 @@ export const ClassLearningView: React.FC<ClassLearningViewProps> = ({
 
       {/* Main Grid: Left Stepper & Right Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: Sticky, Independently Scrollable Accordion Stepper (4 Cols) */}
+        {/* LEFT COLUMN: Clean, Simple Material List (4 Cols) */}
         <div className={`lg:col-span-4 ${isMobileNavOpen ? 'block' : 'hidden lg:block'}`}>
           <div className="lg:sticky lg:top-6 bg-white rounded-3xl p-4 md:p-5 border border-slate-200/80 shadow-soft lg:max-h-[calc(100vh-4.5rem)] flex flex-col">
-            {/* Sidebar Fixed Header */}
+            {/* Sidebar Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-indigo-600" />
-                  <span>Alur Belajar Berjenjang</span>
+                  <span>Daftar Materi Belajar</span>
                 </h3>
                 <span className="text-[11px] font-semibold text-slate-400">
-                  {completedCount}/{items.length} Materi Selesai
+                  {completedCount} dari {items.length} Selesai
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={handleToggleExpandAll}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
-                title="Buka / Tutup Seluruh Bab"
-              >
-                <ChevronsUpDown className="w-3.5 h-3.5" />
-                <span>Lipat/Buka</span>
-              </button>
+              <span className="px-2.5 py-1 rounded-xl text-[11px] font-black bg-indigo-50 text-indigo-700">
+                {percentage}%
+              </span>
             </div>
 
-            {/* Scrollable Accordion List (Independent Scroll) */}
-            <div className="overflow-y-auto flex-1 pr-1 space-y-3.5 max-h-[500px] lg:max-h-none">
+            {/* Flat, Clean Chapter & Item List */}
+            <div className="overflow-y-auto flex-1 pr-1 space-y-4 max-h-[500px] lg:max-h-none">
               {chapters.map((chapterName, cIdx) => {
                 const chapterItems = items.filter(i => (i.chapterTitle || 'Bab 1: Dasar Logika & Algoritma') === chapterName);
-                const chapterSessions = Array.from(new Set(chapterItems.map(i => i.meetingSession || 'Pertemuan 1: Fondasi Logika')));
-                const isChapterCollapsed = Boolean(collapsedChapters[chapterName]);
-                const completedInChapter = chapterItems.filter(i => isItemCompleted(i.id)).length;
 
                 return (
-                  <div key={chapterName} className="bg-slate-50/80 rounded-2xl border border-slate-200/70 overflow-hidden transition-all">
-                    {/* Chapter Accordion Header */}
-                    <button
-                      type="button"
-                      onClick={() => toggleChapterCollapse(chapterName)}
-                      className="w-full p-3 flex items-center justify-between text-left hover:bg-slate-100/70 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <div key={chapterName} className="space-y-2">
+                    {/* Clean Chapter Section Header */}
+                    <div className="flex items-center justify-between px-1 pt-1">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className="w-5 h-5 rounded-md bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center shrink-0 shadow-2xs">
                           {cIdx + 1}
                         </span>
-                        <h4 className="text-xs font-black text-slate-900 truncate">
+                        <h4 className="text-xs font-black text-slate-800 truncate">
                           {chapterName}
                         </h4>
                       </div>
+                    </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] font-semibold text-slate-400">
-                          {completedInChapter}/{chapterItems.length}
-                        </span>
-                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isChapterCollapsed ? '-rotate-90' : ''}`} />
-                      </div>
-                    </button>
+                    {/* Direct Flat List of Material Cards */}
+                    <div className="space-y-1.5 pl-1">
+                      {chapterItems.map((item) => {
+                        const globalIdx = items.findIndex(i => i.id === item.id);
+                        const unlocked = isItemUnlocked(item.id);
+                        const completed = isItemCompleted(item.id);
+                        const isSelected = item.id === selectedItemId;
 
-                    {/* Sessions inside this Chapter */}
-                    {!isChapterCollapsed && (
-                      <div className="p-2 pt-0 space-y-2.5">
-                        {chapterSessions.map(sessionName => {
-                          const sessionKey = `${chapterName}_${sessionName}`;
-                          const sessionItems = chapterItems.filter(i => (i.meetingSession || 'Pertemuan 1: Fondasi Logika') === sessionName);
-                          const isSessionLocked = sessionItems.some(i => i.isSessionLocked);
-                          const isSessionCollapsed = Boolean(collapsedSessions[sessionKey]);
-                          const completedInSession = sessionItems.filter(i => isItemCompleted(i.id)).length;
-                          const hasActiveItem = sessionItems.some(i => i.id === selectedItemId);
-
-                          return (
-                            <div
-                              key={sessionName}
-                              className={`bg-white rounded-xl border transition-all ${
-                                hasActiveItem
-                                  ? 'border-indigo-200 shadow-xs'
-                                  : 'border-slate-200/80 shadow-2xs'
-                              }`}
-                            >
-                              {/* Session Header Toggle */}
-                              <button
-                                type="button"
-                                onClick={() => toggleSessionCollapse(sessionKey)}
-                                className="w-full p-2.5 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0 pr-1">
-                                  <span className="text-[11px] font-extrabold text-slate-800 truncate">
-                                    🔹 {sessionName}
-                                  </span>
+                        return (
+                          <button
+                            key={item.id}
+                            disabled={!unlocked}
+                            onClick={() => handleSelectItem(item.id)}
+                            className={`w-full text-left p-2.5 rounded-2xl transition-all flex items-start gap-3 border ${
+                              isSelected
+                                ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-400/20 shadow-xs'
+                                : !unlocked
+                                ? 'bg-slate-50/60 border-slate-100 opacity-60 cursor-not-allowed'
+                                : completed
+                                ? 'bg-emerald-50/30 border-emerald-100/80 hover:bg-emerald-50/70'
+                                : 'bg-slate-50/80 border-slate-200/70 hover:bg-slate-100/80'
+                            }`}
+                          >
+                            <div className="flex-shrink-0 mt-0.5">
+                              {!unlocked ? (
+                                <div className="w-6 h-6 rounded-lg bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold">
+                                  <Lock className="w-3 h-3" />
                                 </div>
-
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {isSessionLocked ? (
-                                    <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
-                                      <Lock className="w-2.5 h-2.5 text-amber-600" />
-                                      <span>Terkunci</span>
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10px] font-semibold text-slate-400">
-                                      {completedInSession}/{sessionItems.length}
-                                    </span>
-                                  )}
-                                  <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isSessionCollapsed ? '-rotate-90' : ''}`} />
+                              ) : completed ? (
+                                <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
                                 </div>
-                              </button>
-
-                              {/* Items inside Session */}
-                              {!isSessionCollapsed && (
-                                <div className="p-2 pt-0 space-y-1.5">
-                                  {sessionItems.map((item) => {
-                                    const globalIdx = items.findIndex(i => i.id === item.id);
-                                    const unlocked = isItemUnlocked(item.id);
-                                    const completed = isItemCompleted(item.id);
-                                    const isSelected = item.id === selectedItemId;
-
-                                    return (
-                                      <button
-                                        key={item.id}
-                                        disabled={!unlocked}
-                                        onClick={() => handleSelectItem(item.id)}
-                                        className={`w-full text-left p-2 rounded-xl transition-all flex items-start gap-2.5 border ${
-                                          isSelected
-                                            ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-400/30'
-                                            : !unlocked
-                                            ? 'bg-slate-50/50 border-slate-200/40 opacity-50 cursor-not-allowed'
-                                            : completed
-                                            ? 'bg-emerald-50/25 border-emerald-100 hover:bg-emerald-50/60'
-                                            : 'bg-white border-slate-100 hover:bg-slate-50'
-                                        }`}
-                                      >
-                                        <div className="flex-shrink-0 mt-0.5">
-                                          {!unlocked ? (
-                                            <div className="w-5 h-5 rounded-md bg-slate-200 text-slate-400 flex items-center justify-center text-[10px] font-bold">
-                                              <Lock className="w-2.5 h-2.5" />
-                                            </div>
-                                          ) : completed ? (
-                                            <div className="w-5 h-5 rounded-md bg-emerald-500 text-white flex items-center justify-center shadow-2xs">
-                                              <Check className="w-3 h-3 stroke-[3]" />
-                                            </div>
-                                          ) : (
-                                            <div className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shadow-2xs">
-                                              {globalIdx + 1}
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-center gap-1 mb-0.5">
-                                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                                              {item.type === 'reading'
-                                                ? 'Modul'
-                                                : item.type === 'video'
-                                                ? 'Video'
-                                                : 'Kuis/Tugas'}
-                                            </span>
-                                          </div>
-                                          <h5
-                                            className={`text-xs font-bold leading-snug line-clamp-1 ${
-                                              isSelected ? 'text-indigo-900' : 'text-slate-800'
-                                            }`}
-                                          >
-                                            {item.title}
-                                          </h5>
-                                          <span className="text-[9px] text-slate-400 mt-0.5 block">
-                                            {item.durationLabel || '15 Menit'}
-                                          </span>
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
+                              ) : (
+                                <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                                  {globalIdx + 1}
                                 </div>
                               )}
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                                  item.type === 'reading'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : item.type === 'video'
+                                    ? 'bg-purple-50 text-purple-700'
+                                    : 'bg-amber-50 text-amber-700'
+                                }`}>
+                                  {item.type === 'reading'
+                                    ? 'Modul'
+                                    : item.type === 'video'
+                                    ? 'Video'
+                                    : 'Kuis & Tugas'}
+                                </span>
+                                {item.meetingSession && (
+                                  <span className="text-[10px] text-slate-400 truncate">
+                                    • {item.meetingSession}
+                                  </span>
+                                )}
+                              </div>
+                              <h5
+                                className={`text-xs font-bold leading-snug line-clamp-1 ${
+                                  isSelected ? 'text-indigo-950 font-extrabold' : 'text-slate-800'
+                                }`}
+                              >
+                                {item.title}
+                              </h5>
+                              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                                ⏱️ {item.durationLabel || '15 Menit'}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}

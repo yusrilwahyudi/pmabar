@@ -30,19 +30,91 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
   const submission = submissions.find(s => s.id === submissionId);
   const item = submission ? learningItems.find(i => i.id === submission.learningItemId) : null;
 
-  const [score, setScore] = useState<number | string>(submission?.score ?? 85);
+  const questions = item?.questions || [];
+  const studentAnswers = submission?.answers || {};
+
+  // Track teacher manual scores for each essay question
+  const [essayScores, setEssayScores] = useState<Record<string, number | string>>(() => {
+    const init: Record<string, number | string> = {};
+    (item?.questions || []).forEach(q => {
+      if (q.type === 'essay') {
+        const existing = submission?.answers?.[q.id]?.scoreEarned;
+        init[q.id] = existing !== undefined && existing !== null ? existing : '';
+      }
+    });
+    return init;
+  });
+
+  const [score, setScore] = useState<number | string>(submission?.score ?? '');
   const [feedback, setFeedback] = useState<string>(submission?.teacherFeedback ?? '');
 
   if (!submission || !item) return null;
 
+  const totalPossiblePoints = questions.reduce((sum, q) => sum + (q.points || 25), 0) || 100;
+  
+  const mcqPointsEarned = questions.reduce((sum, q) => {
+    if (q.type === 'mcq') {
+      const ans = studentAnswers[q.id];
+      return sum + (ans?.isCorrect ? (q.points || 25) : 0);
+    }
+    return sum;
+  }, 0);
+
+  const essayPointsEarned = questions.reduce((sum, q) => {
+    if (q.type === 'essay') {
+      const val = Number(essayScores[q.id]);
+      return sum + (!isNaN(val) && val > 0 ? val : 0);
+    }
+    return sum;
+  }, 0);
+
+  const calculatedNormalizedScore = totalPossiblePoints > 0
+    ? Math.min(100, Math.round(((mcqPointsEarned + essayPointsEarned) / totalPossiblePoints) * 100))
+    : 100;
+
+  const handleEssayScoreChange = (qId: string, val: string, maxPoint: number) => {
+    const num = val === '' ? '' : Math.max(0, Math.min(maxPoint, Number(val)));
+    const updated = { ...essayScores, [qId]: num };
+    setEssayScores(updated);
+
+    // Auto-update total score on 0-100 scale
+    const newEssaySum = questions.reduce((sum, q) => {
+      if (q.type === 'essay') {
+        const v = Number(updated[q.id]);
+        return sum + (!isNaN(v) && v > 0 ? v : 0);
+      }
+      return sum;
+    }, 0);
+
+    const newNormalized = totalPossiblePoints > 0
+      ? Math.min(100, Math.round(((mcqPointsEarned + newEssaySum) / totalPossiblePoints) * 100))
+      : 100;
+
+    setScore(newNormalized);
+  };
+
   const handleSaveGrade = (e: React.FormEvent) => {
     e.preventDefault();
-    gradeSubmission(submission.id, Number(score), feedback);
+
+    const finalFinalScore = score === '' ? calculatedNormalizedScore : Number(score);
+
+    const updatedAnswers: Record<string, any> = { ...studentAnswers };
+    questions.forEach(q => {
+      if (q.type === 'essay') {
+        const sVal = Number(essayScores[q.id] || 0);
+        updatedAnswers[q.id] = {
+          ...updatedAnswers[q.id],
+          essayAnswer: studentAnswers[q.id]?.essayAnswer || '',
+          scoreEarned: sVal
+        };
+      }
+    });
+
+    gradeSubmission(submission.id, finalFinalScore, feedback, updatedAnswers);
     onClose();
   };
 
-  const questions = item.questions || [];
-  const studentAnswers = submission.answers || {};
+  const hasEssayQuestions = questions.some(q => q.type === 'essay');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
@@ -66,6 +138,11 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                 >
                   {submission.isLate ? 'Terlambat' : 'Tepat Waktu'}
                 </span>
+                {submission.score === null && (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    Menunggu Koreksi Guru
+                  </span>
+                )}
               </div>
               <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
                 {item.title}
@@ -132,9 +209,10 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                   <ClipboardList className="w-4 h-4 text-indigo-600" />
                   <span>Lembar Jawaban Siswa ({questions.length} Butir Soal)</span>
                 </h4>
-                <span className="text-xs font-bold text-slate-500">
-                  Total Nilai Otomatis: {submission.score ?? 0} / {submission.maxScore}
-                </span>
+                <div className="text-xs font-bold text-slate-600 flex items-center gap-2">
+                  <span>Pilihan Ganda: {mcqPointsEarned} Poin</span>
+                  {hasEssayQuestions && <span>• Esai: {essayPointsEarned} Poin</span>}
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -154,7 +232,7 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                           </span>
                           <div>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-                              {q.type === 'mcq' ? 'Pilihan Ganda' : 'Esai Refleksi / Uraian'} • {q.points} Poin
+                              {q.type === 'mcq' ? 'Pilihan Ganda' : 'Esai Refleksi / Uraian'} • Bobot {q.points || 25} Poin
                             </span>
                             <p className="text-xs font-bold text-slate-900 leading-relaxed">
                               {q.questionText}
@@ -168,12 +246,12 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                             {studentAns.isCorrect ? (
                               <span className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                +{q.points} Poin
+                                +{q.points || 25} Poin (Benar)
                               </span>
                             ) : (
                               <span className="px-2.5 py-1 rounded-xl bg-rose-100 text-rose-800 text-xs font-bold flex items-center gap-1">
                                 <XCircle className="w-3.5 h-3.5" />
-                                0 Poin
+                                0 Poin (Salah)
                               </span>
                             )}
                           </div>
@@ -183,7 +261,7 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                       {/* Question Options or Essay Answer */}
                       {q.type === 'mcq' && q.options ? (
                         <div className="space-y-1.5 pl-8">
-                          {q.options.map(opt => {
+                          {q.options.map((opt, optIdx) => {
                             const isSelected = studentAns?.selectedOptionId === opt.id;
                             const isCorrectAnswer = opt.isCorrect;
 
@@ -202,19 +280,11 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                                 className={`p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 ${optStyle}`}
                               >
                                 <div className="flex items-center gap-2">
-                                  {isSelected ? (
-                                    isCorrectAnswer ? (
-                                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                    ) : (
-                                      <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                                    )
-                                  ) : isCorrectAnswer ? (
-                                    <span className="w-4 h-4 rounded-full border border-emerald-500 text-emerald-600 flex items-center justify-center text-[10px] font-bold">
-                                      ✓
-                                    </span>
-                                  ) : (
-                                    <span className="w-4 h-4 rounded-full border border-slate-300 text-slate-400"></span>
-                                  )}
+                                  <span className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                                    isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </span>
                                   <span>{opt.text}</span>
                                 </div>
 
@@ -235,8 +305,8 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                           })}
                         </div>
                       ) : (
-                        /* Essay Answer Box */
-                        <div className="pl-8">
+                        /* Essay Answer Box with Teacher Score Input */
+                        <div className="pl-8 space-y-3">
                           <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 block">
                               Jawaban Esai Siswa:
@@ -246,6 +316,34 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                                 <span className="text-slate-400 italic">Siswa tidak mengisi jawaban esai ini.</span>
                               )}
                             </p>
+                          </div>
+
+                          {/* Teacher Manual Score Input for this Essay */}
+                          <div className="p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div>
+                              <span className="text-xs font-bold text-indigo-950 block">
+                                Berikan Poin Nilai untuk Esai Ini:
+                              </span>
+                              <span className="text-[10px] text-indigo-600">
+                                Maksimal {q.points || 25} poin sesuai bobot soal.
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-bold text-slate-700">Poin Guru:</label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={q.points || 25}
+                                placeholder="0"
+                                value={essayScores[q.id] ?? ''}
+                                onChange={e => handleEssayScoreChange(q.id, e.target.value, q.points || 25)}
+                                className="w-20 p-2 bg-white border border-indigo-300 rounded-xl text-center text-sm font-black text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                              <span className="text-xs font-bold text-slate-500">
+                                / {q.points || 25}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -296,30 +394,41 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
 
           {/* 3. GRADING & FEEDBACK SECTION */}
           <form id="grading-form" onSubmit={handleSaveGrade} className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-4">
-            <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-              <Award className="w-4 h-4 text-indigo-600" />
-              <span>Formulir Penilaian & Umpan Balik Guru</span>
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                <Award className="w-4 h-4 text-indigo-600" />
+                <span>Formulir Penilaian & Umpan Balik Guru</span>
+              </h4>
+              {hasEssayQuestions && (
+                <span className="text-xs font-bold text-indigo-600 bg-white px-2.5 py-1 rounded-lg border border-indigo-200">
+                  Kalkulasi Otomatis: {calculatedNormalizedScore} / 100
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                  Total Nilai Siswa (Maks: {submission.maxScore})
+                  Nilai Akhir Rapor (Skala 0 - 100)
                 </label>
                 <div className="relative">
                   <input
                     type="number"
                     min={0}
-                    max={submission.maxScore}
+                    max={100}
                     required
+                    placeholder={String(calculatedNormalizedScore)}
                     value={score}
                     onChange={e => setScore(e.target.value)}
                     className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-base font-black text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                   <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
-                    / {submission.maxScore}
+                    / 100
                   </span>
                 </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Nilai otomatis terhitung dari gabungan PG & Esai.
+                </span>
               </div>
 
               <div className="sm:col-span-2">
