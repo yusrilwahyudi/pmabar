@@ -120,6 +120,9 @@ export const PastelClassCard: React.FC<PastelClassCardProps> = ({ classItem, onS
               <img
                 src={getTeacherAvatar(classItem.teacherName)}
                 alt={classItem.teacherName}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=Guru`;
+                }}
                 className="w-full h-full object-cover rounded-xl"
               />
             </div>

@@ -138,7 +138,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <img
                   src={getUserAvatar(currentUser)}
                   alt={currentUser.name}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl object-cover ring-1 ring-slate-200"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentUser.name)}`;
+                  }}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
                 />
                 <div className="hidden sm:block max-w-[100px] md:max-w-[130px] xl:max-w-[160px]">
                   <span className="text-xs font-bold text-slate-900 block truncate leading-tight">

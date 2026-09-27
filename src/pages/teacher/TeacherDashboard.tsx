@@ -80,6 +80,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <img
                 src={getTeacherAvatar(currentUser?.name || teacherName)}
                 alt={teacherName}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=Guru`;
+                }}
                 className="w-full h-full object-cover rounded-xl"
               />
             </div>
