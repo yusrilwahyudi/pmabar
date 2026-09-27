@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2 sm:gap-3">
           
-          {/* 1. LEFT: Brand & School Identity (Clean Single-Line) */}
+          {/* 1. LEFT: Brand & School Identity */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0">
             <div
               onClick={() => setActiveTab('learning')}
@@ -41,18 +41,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform"
               />
               <div className="flex flex-col">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="font-black text-slate-900 text-sm sm:text-base tracking-tight whitespace-nowrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-slate-900 text-sm sm:text-base tracking-tight whitespace-nowrap">
                     P Mabar
                   </span>
-                  <span className="text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md tracking-wide whitespace-nowrap">
+                  <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md whitespace-nowrap">
                     SMKN 5 GOWA
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-slate-500 font-medium whitespace-nowrap -mt-0.5">
+                <div className="hidden sm:flex items-center gap-1 text-[10px] text-slate-500 font-medium whitespace-nowrap -mt-0.5">
                   <span className="font-semibold text-indigo-600">Platform Manajemen Belajar Daring</span>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-slate-400">by Yusril Wahyudi, S.Pd</span>
                 </div>
               </div>
             </div>
