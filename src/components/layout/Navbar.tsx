@@ -49,8 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     SMKN 5 GOWA
                   </span>
                 </div>
-                <div className="hidden sm:flex items-center gap-1 text-[10px] text-slate-500 font-medium whitespace-nowrap -mt-0.5">
-                  <span className="font-semibold text-indigo-600">Platform Manajemen Belajar Daring</span>
+                <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-indigo-600 font-semibold whitespace-nowrap -mt-0.5">
+                  <span>Platform Manajemen Belajar Daring</span>
                 </div>
               </div>
             </div>
