@@ -263,6 +263,18 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
     );
   }
 
+  const isQuestionAnswered = (q: (typeof questions)[0]) => {
+    if (!q) return false;
+    const ans = answers[q.id];
+    if (q.type === 'mcq') {
+      return Boolean(ans?.selectedOptionId);
+    }
+    return Boolean(ans?.essayAnswer && ans.essayAnswer.trim().length > 0);
+  };
+
+  const answeredCount = questions.filter(isQuestionAnswered).length;
+  const isAllAnswered = questions.length > 0 && answeredCount === questions.length;
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:px-8 exam-secure-mode relative">
       <ExamWatermark studentName={studentName} studentIdNumber={studentIdNumber} />
@@ -305,27 +317,36 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-3 border border-slate-200 flex items-center gap-2 overflow-x-auto">
-          {questions.map((q, idx) => {
-            const hasAnswered = answers[q.id]?.selectedOptionId || answers[q.id]?.essayAnswer;
-            const isCurrent = idx === currentQuestionIdx;
+        <div className="bg-white rounded-2xl p-3 border border-slate-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+            {questions.map((q, idx) => {
+              const hasAnswered = isQuestionAnswered(q);
+              const isCurrent = idx === currentQuestionIdx;
 
-            return (
-              <button
-                key={q.id}
-                onClick={() => setCurrentQuestionIdx(idx)}
-                className={`w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center transition-all flex-shrink-0 ${
-                  isCurrent
-                    ? 'bg-slate-900 text-white ring-2 ring-indigo-500/30 shadow-xs'
-                    : hasAnswered
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {idx + 1}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => setCurrentQuestionIdx(idx)}
+                  className={`w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center transition-all flex-shrink-0 ${
+                    isCurrent
+                      ? 'bg-slate-900 text-white ring-2 ring-indigo-500/30 shadow-xs'
+                      : hasAnswered
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/80'
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="shrink-0 text-right pl-2 border-l border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 block">Progres Soal</span>
+            <span className={`text-xs font-black ${isAllAnswered ? 'text-emerald-600' : 'text-slate-800'}`}>
+              <span className={isAllAnswered ? 'text-emerald-600' : 'text-indigo-600'}>{answeredCount}</span>/{questions.length} Selesai
+            </span>
+          </div>
         </div>
 
         {currentQ && (
@@ -391,6 +412,16 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
               </div>
             )}
 
+            {/* Incomplete reminder banner on last question */}
+            {currentQuestionIdx === questions.length - 1 && !isAllAnswered && (
+              <div className="mt-6 p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200 flex items-center gap-2.5 text-xs text-amber-900">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Perhatian:</strong> Masih ada <strong>{questions.length - answeredCount}</strong> butir soal yang belum dijawab. Harap lengkapi semua soal agar tombol kirim dapat ditekan.
+                </span>
+              </div>
+            )}
+
             <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
               <button
                 disabled={currentQuestionIdx === 0}
@@ -415,11 +446,19 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
                 </button>
               ) : (
                 <button
+                  disabled={!isAllAnswered}
                   onClick={handleSubmitQuiz}
-                  className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-md active:scale-95 transition-all"
+                  className={`px-6 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all ${
+                    isAllAnswered
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 cursor-pointer'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300/60 shadow-none'
+                  }`}
+                  title={isAllAnswered ? 'Kirim Jawaban Asesmen' : 'Lengkapi semua soal terlebih dahulu'}
                 >
                   <Send className="w-4 h-4" />
-                  <span>Kirim Jawaban Asesmen</span>
+                  <span>
+                    {isAllAnswered ? 'Kirim Jawaban Asesmen' : `Lengkapi Semua Soal (${answeredCount}/${questions.length})`}
+                  </span>
                 </button>
               )}
             </div>
