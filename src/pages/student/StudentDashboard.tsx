@@ -46,12 +46,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-16 w-48 h-48 rounded-full bg-indigo-400/20 blur-xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 sm:gap-4">
             <img
               src={currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser?.name}`}
               alt={currentUser?.name}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 p-1 border border-white/20 shadow-md shrink-0 object-cover"
+              className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-white/10 p-1 border border-white/20 shadow-md shrink-0 object-cover"
             />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -65,22 +65,26 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mt-1">
                 Halo, {currentUser?.name?.split(' ')[0] || 'Siswa'} 👋
               </h1>
-              <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 line-clamp-1">
-                Selamat datang di ruang pembelajaran daring Anda.
+              <p className="text-xs sm:text-sm text-indigo-100 mt-0.5">
+                {enrolledClasses.length > 0
+                  ? `Anda terdaftar dalam ${enrolledClasses.length} ruang kelas aktif.`
+                  : 'Siap untuk memulai petualangan belajar Anda hari ini.'}
               </p>
             </div>
           </div>
 
-          {/* Quick Action Button */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button
-              onClick={onOpenJoinClassModal}
-              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-slate-50 text-indigo-700 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
-            >
-              <Plus className="w-4 h-4 text-indigo-600" />
-              <span>Gabung Kelas Baru</span>
-            </button>
-          </div>
+          {/* Quick Stats Pill / Desktop Action */}
+          {enrolledClasses.length > 0 && (
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
+              <button
+                onClick={onOpenJoinClassModal}
+                className="px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all backdrop-blur-md border border-white/20"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Gabung Kelas</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -110,7 +114,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-100">
               <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center mb-2">2</span>
               <h4 className="font-bold text-xs text-slate-800">Klik Gabung</h4>
-              <p className="text-[11px] text-slate-500 mt-1">Tekan tombol gabung dan masukkan kode kelas Anda.</p>
+              <p className="text-[11px] text-slate-500 mt-1">Tekan tombol di bawah atau tombol (+) di bilah bawah.</p>
             </div>
 
             <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-100">
@@ -120,6 +124,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           </div>
 
+          {/* SINGLE PRIMARY CTA ON EMPTY STATE */}
           <button
             onClick={onOpenJoinClassModal}
             className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2 mx-auto"
@@ -171,14 +176,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   {enrolledClasses.length} Kelas
                 </span>
               </div>
-
-              <button
-                onClick={onOpenJoinClassModal}
-                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 sm:hidden"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Gabung</span>
-              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
