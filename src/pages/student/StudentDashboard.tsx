@@ -74,7 +74,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 className="px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all backdrop-blur-md border border-white/20"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Gabung Kelas</span>
+                <span>Gabung Kelas</span>
               </button>
             </div>
           )}
@@ -123,7 +123,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2 mx-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Masukkan Kode Kelas Sekarang</span>
+            <span>Masukkan Kode Kelas Sekarang</span>
           </button>
         </div>
       ) : (

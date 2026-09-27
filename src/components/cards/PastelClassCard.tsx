@@ -188,7 +188,7 @@ export const PastelClassCard: React.FC<PastelClassCardProps> = ({ classItem, onS
             className="w-full py-2.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
           >
             <Key className="w-3.5 h-3.5" />
-            <span>+ Masukkan Kode Kelas</span>
+            <span>Masukkan Kode Kelas</span>
           </button>
         </div>
       )}
