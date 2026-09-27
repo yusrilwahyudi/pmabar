@@ -1,9 +1,9 @@
 /**
  * Avatar Generator Utility for P Mabar LMS
- * 100% Reliable, Fast, and Clean Vector Avatars:
+ * Tailored for Indonesian Teachers & Students:
  * - Siswa: Robot Bottts vector avatar
- * - Guru Laki-laki: Male Teacher with neat haircut, blazer/shirt, and friendly smile
- * - Guru Perempuan: Female Teacher with elegant hijab / style
+ * - Guru Laki-laki: Guru pria rapi (rambut hitam tebal/rapi, kulit kuning langsat/sawo matang cerah alami, kemeja rapi)
+ * - Guru Perempuan: Guru wanita elegan (hijab/rambut rapi, kulit cerah alami)
  */
 
 export function detectTeacherGender(name: string): 'male' | 'female' {
@@ -31,12 +31,12 @@ export function getTeacherAvatar(name: string, gender?: 'male' | 'female'): stri
   const cleanSeed = encodeURIComponent(name.replace(/[^a-zA-Z0-9]/g, '') || 'Guru');
 
   if (finalGender === 'female') {
-    // Elegant female teacher with hijab / long hair
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanSeed}&top=hijab,straight01,longButNotTooLong&eyes=default,happy&mouth=default,smile&facialHairChance=0&accessoriesChance=0&backgroundColor=ffd5dc,ffdfbf,c0aede`;
+    // Guru Wanita: Hijab / rambut rapi, kulit cerah, senyum ramah
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanSeed}&top=hijab,straight01,longButNotTooLong&hairColor=2c1b18,4a312c,000000&skinColor=edb98a,f8d25c,ffdbb4&eyes=default,happy&mouth=default,smile&facialHairChance=0&accessoriesChance=0&clothing=collarAndSweater,shirtCrewNeck&clothingColor=ff5c5c,5199e4,9287ff&backgroundColor=ffd5dc,ffdfbf,c0aede`;
   }
 
-  // Handsome professional male teacher with short hair, smiling, blazer/shirt
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanSeed}&top=shortFlat,shortWaved,theCaesar,sides&eyes=default,happy&mouth=default,smile&facialHairChance=0&accessoriesChance=0&clothing=collarAndSweater,shirtCrewNeck&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+  // Guru Pria: Rambut hitam rapi tebal (bukan botak), kulit kuning langsat/cerah, kemeja profesional
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanSeed}&top=shortFlat,shortWaved,theCaesar&hairColor=2c1b18,4a312c,000000&skinColor=edb98a,f8d25c,ffdbb4&eyes=default,happy&mouth=default,smile&facialHairChance=0&accessoriesChance=0&clothing=collarAndSweater,shirtCrewNeck&clothingColor=262e33,5199e4,25557c&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 }
 
 export function getStudentAvatar(idNumberOrName: string): string {
