@@ -231,6 +231,13 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
     onUpdateSession?.(updated);
   };
 
+  const handleRestartNewGame = () => {
+    if (window.confirm('Mulai game baru dari awal? Ini akan mereset ronde kembali ke Ronde 1 dan seluruh skor kelompok menjadi 0.')) {
+      const updated = buzzerService.restartNewGame(session);
+      onUpdateSession?.(updated);
+    }
+  };
+
   // Sort groups by score descending for podium/ranking
   const sortedGroups = [...session.groups].sort((a, b) => b.score - a.score);
 
@@ -291,6 +298,15 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
           >
             <BookOpen className="w-4 h-4" />
             <span className="hidden sm:inline">Bank Soal ({bankQuestions.length})</span>
+          </button>
+
+          <button
+            onClick={handleRestartNewGame}
+            className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all"
+            title="Mulai Game Baru dari Ronde 1 & Skor 0"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden md:inline">Reset Game</span>
           </button>
 
           <button
@@ -530,10 +546,11 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
 
               <div className="flex items-center justify-center gap-3 pt-4">
                 <button
-                  onClick={handleResetRound}
-                  className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all"
+                  onClick={handleRestartNewGame}
+                  className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/25 active:scale-95"
                 >
-                  Mulai Pertandingan Baru
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Mulai Pertandingan Baru (Ronde 1)</span>
                 </button>
               </div>
             </div>

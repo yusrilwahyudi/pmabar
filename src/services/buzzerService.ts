@@ -429,6 +429,28 @@ class BuzzerService {
     return updated;
   }
 
+  // Action: Mulai Game Baru dari Awal (Ronde 1 & Skor 0)
+  public restartNewGame(session: BuzzerGameSession): BuzzerGameSession {
+    const resetGroups = session.groups.map(g => ({
+      ...g,
+      score: 0
+    }));
+
+    const updated: BuzzerGameSession = {
+      ...session,
+      phase: 'ready',
+      roundNumber: 1,
+      currentQuestion: undefined,
+      buzzerWinner: null,
+      buzzerOpenedAt: null,
+      remainingAnswerSeconds: session.answerTimeLimitSeconds,
+      groups: resetGroups
+    };
+
+    this.broadcast(updated, 'RESET_ROUND');
+    return updated;
+  }
+
   // Action: Selesaikan Game
   public endGame(session: BuzzerGameSession): BuzzerGameSession {
     const updated: BuzzerGameSession = {
