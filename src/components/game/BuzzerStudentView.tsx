@@ -203,7 +203,8 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
     setIsPressing(true);
     setTimeout(() => setIsPressing(false), 250);
 
-    // Haptic feedback
+    // Audio & Haptic feedback immediate
+    audioEffects.playBuzzerPress();
     if ('vibrate' in navigator) {
       try { navigator.vibrate(200); } catch (e) {}
     }

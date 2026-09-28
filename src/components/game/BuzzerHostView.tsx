@@ -81,6 +81,30 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
     }))
   );
 
+  const lastHostPhaseRef = useRef(session.phase);
+  const lastWinnerRef = useRef(session.buzzerWinner?.pressedAt);
+
+  // Audio triggers for Realtime Network State Changes on Host
+  useEffect(() => {
+    if (session.phase !== lastHostPhaseRef.current) {
+      if (session.phase === 'buzzer_open') {
+        soundEngine.playBuzzerOpen();
+      } else if (session.phase === 'answering' && session.buzzerWinner) {
+        soundEngine.playBuzzerPress();
+      } else if (session.phase === 'game_over') {
+        soundEngine.playVictory();
+      }
+      lastHostPhaseRef.current = session.phase;
+    } else if (
+      session.phase === 'answering' &&
+      session.buzzerWinner &&
+      session.buzzerWinner.pressedAt !== lastWinnerRef.current
+    ) {
+      soundEngine.playBuzzerPress();
+      lastWinnerRef.current = session.buzzerWinner.pressedAt;
+    }
+  }, [session.phase, session.buzzerWinner]);
+
   // Answer countdown timer when a team locks the buzzer
   useEffect(() => {
     let interval: any = null;
@@ -368,6 +392,15 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
             <span className="hidden md:inline">Reset Game</span>
+          </button>
+
+          <button
+            onClick={() => soundEngine.playTestSound()}
+            className="px-2.5 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-bold flex items-center gap-1.5 transition-all"
+            title="Uji Coba Bunyi Bel & Fanfare Audio"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden xl:inline">Tes Suara</span>
           </button>
 
           <button
