@@ -20,12 +20,14 @@ interface TeacherDashboardProps {
   onSelectClass: (classId: string) => void;
   onOpenCreateClassModal: () => void;
   onOpenGradeBook: () => void;
+  onOpenGameArena?: () => void;
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onSelectClass,
   onOpenCreateClassModal,
-  onOpenGradeBook
+  onOpenGradeBook,
+  onOpenGameArena
 }) => {
   const { classes, submissions, learningItems, currentUser, duplicateClass, deleteClass } = useLMS();
 
@@ -143,6 +145,42 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 1.5. Live Game Cerdas Cermat Arena Banner */}
+      {onOpenGameArena && (
+        <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg shadow-rose-500/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+          <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl sm:text-3xl shadow-md shrink-0">
+              🎮
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-white/25 text-white uppercase tracking-wider">
+                  HOST GAME PROYEKTOR
+                </span>
+                <span className="text-xs font-bold text-amber-200">Adu Cepat Bel</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white tracking-tight mt-0.5">
+                Arena Game Cerdas Cermat Interaktif
+              </h3>
+              <p className="text-xs text-white/85 mt-0.5 max-w-xl leading-relaxed">
+                Buka ruang adu cepat bel cerdas cermat, tampilkan di proyektor kelas, dan pimpin 6 regu siswa.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative z-10 shrink-0">
+            <button
+              onClick={onOpenGameArena}
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-black text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <span>Buka Arena Game</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Classes Management Grid */}
       <section>

@@ -17,6 +17,8 @@ import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { StudentManagerModal } from './components/modals/StudentManagerModal';
 import { PastelClassCard } from './components/cards/PastelClassCard';
 import { BuzzerGameArena } from './pages/game/BuzzerGameArena';
+import { QuickActionModal } from './components/modals/QuickActionModal';
+import { SelectClassForGameModal } from './components/modals/SelectClassForGameModal';
 import { ShieldCheck, Key, LogOut } from 'lucide-react';
 import { getUserAvatar } from './utils/avatar';
 
@@ -36,6 +38,8 @@ export const AppContent: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isStudentManagerModalOpen, setIsStudentManagerModalOpen] = useState(false);
+  const [isQuickActionModalOpen, setIsQuickActionModalOpen] = useState(false);
+  const [isSelectGameClassModalOpen, setIsSelectGameClassModalOpen] = useState(false);
 
   // Guaranteed reset to Dashboard whenever a user logs in or switches account
   useEffect(() => {
@@ -68,6 +72,20 @@ export const AppContent: React.FC = () => {
   const handleBackToDashboard = () => {
     setSelectedClassId(null);
     setActiveLearningItemId(undefined);
+  };
+
+  // Helper to trigger Game Arena with 1-click or class selector
+  const handleOpenGameArenaFlow = () => {
+    const available = classes.filter(cls => {
+      if (currentUser?.role === 'guru') return true;
+      return classMembers.some(m => m.classId === cls.id && m.studentId === currentUser?.id);
+    });
+
+    if (available.length === 1) {
+      setActiveGameClassId(available[0].id);
+    } else {
+      setIsSelectGameClassModalOpen(true);
+    }
   };
 
   // If Quiz is Active, render full screen quiz proctored view
@@ -125,7 +143,6 @@ export const AppContent: React.FC = () => {
               initialItemId={activeLearningItemId}
               onBack={handleBackToDashboard}
               onStartQuiz={itemId => setActiveQuizId(itemId)}
-              onOpenGame={classId => setActiveGameClassId(classId)}
             />
           )
         ) : (
@@ -137,12 +154,14 @@ export const AppContent: React.FC = () => {
                   onSelectClass={classId => handleSelectClass(classId)}
                   onOpenCreateClassModal={() => setIsCreateModalOpen(true)}
                   onOpenGradeBook={() => setActiveTab('grades')}
+                  onOpenGameArena={handleOpenGameArenaFlow}
                 />
               ) : (
                 <StudentDashboard
                   onSelectClass={classId => handleSelectClass(classId)}
                   onOpenItem={(classId, itemId) => handleSelectClass(classId, itemId)}
                   onOpenJoinClassModal={() => setIsJoinModalOpen(true)}
+                  onOpenGameArena={handleOpenGameArenaFlow}
                 />
               )
             )}
@@ -277,16 +296,25 @@ export const AppContent: React.FC = () => {
           setActiveTab(tab);
           setSelectedClassId(null);
         }}
-        onOpenActionModal={() => {
-          if (currentUser.role === 'guru') {
-            setIsCreateModalOpen(true);
-          } else {
-            setIsJoinModalOpen(true);
-          }
-        }}
+        onOpenActionModal={() => setIsQuickActionModalOpen(true)}
       />
 
       {/* Modals */}
+      <QuickActionModal
+        isOpen={isQuickActionModalOpen}
+        onClose={() => setIsQuickActionModalOpen(false)}
+        onOpenJoinClass={() => setIsJoinModalOpen(true)}
+        onOpenCreateClass={() => setIsCreateModalOpen(true)}
+        onOpenGameArena={handleOpenGameArenaFlow}
+        onOpenStudentManager={() => setIsStudentManagerModalOpen(true)}
+      />
+
+      <SelectClassForGameModal
+        isOpen={isSelectGameClassModalOpen}
+        onClose={() => setIsSelectGameClassModalOpen(false)}
+        onSelectClassForGame={classId => setActiveGameClassId(classId)}
+      />
+
       <JoinClassModal
         isOpen={isJoinModalOpen}
         onClose={() => setIsJoinModalOpen(false)}
