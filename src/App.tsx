@@ -16,6 +16,7 @@ import { GradeSubmissionModal } from './pages/teacher/GradeSubmissionModal';
 import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { StudentManagerModal } from './components/modals/StudentManagerModal';
 import { PastelClassCard } from './components/cards/PastelClassCard';
+import { BuzzerGameArena } from './pages/game/BuzzerGameArena';
 import { ShieldCheck, Key, LogOut } from 'lucide-react';
 import { getUserAvatar } from './utils/avatar';
 
@@ -28,6 +29,7 @@ export const AppContent: React.FC = () => {
   const [activeLearningItemId, setActiveLearningItemId] = useState<string | undefined>(undefined);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
+  const [activeGameClassId, setActiveGameClassId] = useState<string | null>(null);
 
   // Modals
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -41,6 +43,7 @@ export const AppContent: React.FC = () => {
     setActiveLearningItemId(undefined);
     setActiveQuizId(null);
     setGradingSubmissionId(null);
+    setActiveGameClassId(null);
     setActiveTab('learning');
   }, [currentUser?.id]);
 
@@ -77,6 +80,19 @@ export const AppContent: React.FC = () => {
     );
   }
 
+  // If Game Arena is Active, render full screen Cerdas Cermat arena
+  if (activeGameClassId) {
+    const gameClass = classes.find(c => c.id === activeGameClassId);
+    return (
+      <BuzzerGameArena
+        classId={activeGameClassId}
+        className={gameClass?.title || 'Kelas Cerdas Cermat'}
+        currentUser={currentUser}
+        onExit={() => setActiveGameClassId(null)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col">
       {/* Top Navbar */}
@@ -101,6 +117,7 @@ export const AppContent: React.FC = () => {
               classId={selectedClassId}
               onBack={handleBackToDashboard}
               onOpenGradeSubmissionModal={subId => setGradingSubmissionId(subId)}
+              onOpenGame={classId => setActiveGameClassId(classId)}
             />
           ) : (
             <ClassLearningView
@@ -108,6 +125,7 @@ export const AppContent: React.FC = () => {
               initialItemId={activeLearningItemId}
               onBack={handleBackToDashboard}
               onStartQuiz={itemId => setActiveQuizId(itemId)}
+              onOpenGame={classId => setActiveGameClassId(classId)}
             />
           )
         ) : (

@@ -33,12 +33,14 @@ interface ClassManageTeacherProps {
   classId: string;
   onBack: () => void;
   onOpenGradeSubmissionModal: (submissionId: string) => void;
+  onOpenGame?: (classId: string) => void;
 }
 
 export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
   classId,
   onBack,
-  onOpenGradeSubmissionModal
+  onOpenGradeSubmissionModal,
+  onOpenGame
 }) => {
   const {
     classes,
@@ -638,6 +640,18 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                 Daftar Siswa ({members.length})
               </button>
             </div>
+
+            {/* Arena Cerdas Cermat Button */}
+            {onOpenGame && (
+              <button
+                onClick={() => onOpenGame(currentClass.id)}
+                className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-500/20 active:scale-95 transition-all"
+                title="Buka Arena Game Cerdas Cermat Realtime"
+              >
+                <span>🎮</span>
+                <span>Arena Cerdas Cermat</span>
+              </button>
+            )}
 
             {/* Hapus Kelas Button */}
             <button
