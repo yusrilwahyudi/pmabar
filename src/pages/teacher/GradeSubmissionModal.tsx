@@ -50,12 +50,16 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
 
   if (!submission || !item) return null;
 
-  const totalPossiblePoints = questions.reduce((sum, q) => sum + (q.points || 25), 0) || 100;
+  const getQPoint = (q: (typeof questions)[0]) => {
+    return q.points !== undefined && q.points !== null ? Number(q.points) : (q.type === 'mcq' ? 1 : 10);
+  };
+
+  const totalPossiblePoints = questions.reduce((sum, q) => sum + getQPoint(q), 0) || 100;
   
   const mcqPointsEarned = questions.reduce((sum, q) => {
     if (q.type === 'mcq') {
       const ans = studentAnswers[q.id];
-      return sum + (ans?.isCorrect ? (q.points || 25) : 0);
+      return sum + (ans?.isCorrect ? getQPoint(q) : 0);
     }
     return sum;
   }, 0);
@@ -232,7 +236,7 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                           </span>
                           <div>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-                              {q.type === 'mcq' ? 'Pilihan Ganda' : 'Esai Refleksi / Uraian'} • Bobot {q.points || 25} Poin
+                              {q.type === 'mcq' ? 'Pilihan Ganda' : 'Esai Refleksi / Uraian'} • Bobot {getQPoint(q)} Poin
                             </span>
                             <p className="text-xs font-bold text-slate-900 leading-relaxed">
                               {q.questionText}
@@ -246,7 +250,7 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                             {studentAns.isCorrect ? (
                               <span className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                +{q.points || 25} Poin (Benar)
+                                +{getQPoint(q)} Poin (Benar)
                               </span>
                             ) : (
                               <span className="px-2.5 py-1 rounded-xl bg-rose-100 text-rose-800 text-xs font-bold flex items-center gap-1">
@@ -325,7 +329,7 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                                 Berikan Poin Nilai untuk Esai Ini:
                               </span>
                               <span className="text-[10px] text-indigo-600">
-                                Maksimal {q.points || 25} poin sesuai bobot soal.
+                                Maksimal {getQPoint(q)} poin sesuai bobot soal.
                               </span>
                             </div>
 
@@ -334,14 +338,14 @@ export const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                               <input
                                 type="number"
                                 min={0}
-                                max={q.points || 25}
+                                max={getQPoint(q)}
                                 placeholder="0"
                                 value={essayScores[q.id] ?? ''}
-                                onChange={e => handleEssayScoreChange(q.id, e.target.value, q.points || 25)}
+                                onChange={e => handleEssayScoreChange(q.id, e.target.value, getQPoint(q))}
                                 className="w-20 p-2 bg-white border border-indigo-300 rounded-xl text-center text-sm font-black text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                               <span className="text-xs font-bold text-slate-500">
-                                / {q.points || 25}
+                                / {getQPoint(q)}
                               </span>
                             </div>
                           </div>

@@ -135,7 +135,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
       order: 1,
       type: 'mcq',
       questionText: '',
-      points: 50,
+      points: 1,
       options: [
         { id: 'opt-1', text: '', isCorrect: true },
         { id: 'opt-2', text: '', isCorrect: false },
@@ -298,7 +298,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
         order: 1,
         type: 'mcq',
         questionText: '',
-        points: 50,
+        points: 1,
         options: [
           { id: 'opt-1', text: '', isCorrect: true },
           { id: 'opt-2', text: '', isCorrect: false },
@@ -358,7 +358,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
           order: 1,
           type: 'mcq',
           questionText: '',
-          points: 50,
+          points: 1,
           options: [
             { id: 'opt-1', text: '', isCorrect: true },
             { id: 'opt-2', text: '', isCorrect: false },
@@ -399,7 +399,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
       order: nextOrder,
       type,
       questionText: '',
-      points: 25,
+      points: type === 'mcq' ? 1 : 10,
       options:
         type === 'mcq'
           ? [
@@ -475,6 +475,12 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
   const handleUpdateQuestionText = (idx: number, text: string) => {
     setQuestions(prev =>
       prev.map((q, i) => (i === idx ? { ...q, questionText: text } : q))
+    );
+  };
+
+  const handleUpdateQuestionPoints = (idx: number, points: number) => {
+    setQuestions(prev =>
+      prev.map((q, i) => (i === idx ? { ...q, points: Math.max(1, points) } : q))
     );
   };
 
@@ -1430,7 +1436,7 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
 
                       {questions.map((q, qIdx) => (
                         <div key={q.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 space-y-2.5">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-indigo-700">
                                 Nomor {qIdx + 1}
@@ -1456,15 +1462,33 @@ export const ClassManageTeacher: React.FC<ClassManageTeacherProps> = ({
                                 </button>
                               </div>
                             </div>
-                            {questions.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveQuestion(qIdx)}
-                                className="text-slate-400 hover:text-rose-600 text-xs font-medium px-2 py-0.5 rounded-lg hover:bg-rose-50 transition-colors"
-                              >
-                                Hapus
-                              </button>
-                            )}
+
+                            <div className="flex items-center gap-2">
+                              {/* Points input */}
+                              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-xl">
+                                <label className="text-[10px] font-bold text-slate-500">Bobot:</label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={100}
+                                  value={q.points !== undefined ? q.points : (q.type === 'mcq' ? 1 : 10)}
+                                  onChange={e => handleUpdateQuestionPoints(qIdx, Number(e.target.value) || 1)}
+                                  className="w-12 text-center text-xs font-black text-indigo-700 bg-white border border-slate-200 rounded-lg py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                  title="Bobot poin jika jawaban benar"
+                                />
+                                <span className="text-[10px] font-bold text-slate-500">Poin</span>
+                              </div>
+
+                              {questions.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveQuestion(qIdx)}
+                                  className="text-slate-400 hover:text-rose-600 text-xs font-medium px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors"
+                                >
+                                  Hapus
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           <div>

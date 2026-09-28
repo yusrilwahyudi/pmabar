@@ -125,7 +125,7 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
     const formattedAnswers: Record<string, any> = {};
 
     questions.forEach(q => {
-      const qPoint = q.points || 25;
+      const qPoint = q.points !== undefined && q.points !== null ? Number(q.points) : (q.type === 'mcq' ? 1 : 10);
       totalPossiblePoints += qPoint;
       const userAns = answers[q.id];
 
@@ -415,7 +415,7 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ itemId, onClose }) => {
                 Soal Nomor {currentQuestionIdx + 1} dari {questions.length} ({currentQ.type === 'mcq' ? 'Pilihan Ganda' : 'Esai'})
               </span>
               <span className="text-xs font-bold text-slate-400">
-                Bobot: {currentQ.points} Poin
+                Bobot: {currentQ.points !== undefined && currentQ.points !== null ? currentQ.points : (currentQ.type === 'mcq' ? 1 : 10)} Poin
               </span>
             </div>
 
