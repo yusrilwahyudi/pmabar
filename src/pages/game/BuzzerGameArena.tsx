@@ -28,6 +28,9 @@ export const BuzzerGameArena: React.FC<BuzzerGameArenaProps> = ({
   const [previewAsStudent, setPreviewAsStudent] = useState<boolean>(false);
 
   useEffect(() => {
+    const isTeacher = currentUser.role === 'guru' || currentUser.role === 'admin';
+    const isHost = isTeacher && !previewAsStudent;
+
     // 1. Initial Load
     const initialSession = buzzerService.loadSession(classId, className);
     setSession(initialSession);
@@ -35,12 +38,26 @@ export const BuzzerGameArena: React.FC<BuzzerGameArenaProps> = ({
     // 2. Subscribe to Realtime Updates
     const unsubscribe = buzzerService.subscribe(classId, (updatedSession) => {
       setSession({ ...updatedSession });
-    });
+    }, isHost);
+
+    // 3. Request state on window focus or visibility change (e.g. phone wake)
+    const handleWake = () => {
+      if (document.visibilityState === 'visible') {
+        buzzerService.requestState(classId);
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleWake);
+    window.addEventListener('focus', handleWake);
+    window.addEventListener('online', handleWake);
 
     return () => {
       unsubscribe();
+      window.removeEventListener('visibilitychange', handleWake);
+      window.removeEventListener('focus', handleWake);
+      window.removeEventListener('online', handleWake);
     };
-  }, [classId, className]);
+  }, [classId, className, currentUser.role, previewAsStudent]);
 
   if (!session) {
     return (

@@ -142,6 +142,37 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
+  // Realtime Sync Hook: Auto-request latest state on wake, focus, and network reconnect
+  useEffect(() => {
+    // 1. Initial request on mount
+    buzzerService.requestState(session.classId);
+
+    // 2. Mobile screen wake / app switch
+    const handleWakeSync = () => {
+      if (document.visibilityState === 'visible') {
+        buzzerService.requestState(session.classId);
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleWakeSync);
+    window.addEventListener('focus', handleWakeSync);
+    window.addEventListener('online', handleWakeSync);
+
+    // 3. Fallback request interval every 2.5s if not answering
+    const interval = setInterval(() => {
+      if (session.phase !== 'answering') {
+        buzzerService.requestState(session.classId);
+      }
+    }, 2500);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleWakeSync);
+      window.removeEventListener('focus', handleWakeSync);
+      window.removeEventListener('online', handleWakeSync);
+      clearInterval(interval);
+    };
+  }, [session.classId, session.phase]);
+
   // Audio & Haptic triggers on session phase transitions
   useEffect(() => {
     if (session.phase !== lastPhaseRef.current) {
