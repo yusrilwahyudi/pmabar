@@ -200,6 +200,112 @@ class BuzzerService {
     }
   }
 
+  // Anti-Cheat: Siswa mengunci slot perwakilan kelompok
+  public claimGroup(
+    session: BuzzerGameSession,
+    groupId: string,
+    studentId: string,
+    studentName: string,
+    studentNisn?: string
+  ): { success: boolean; session: BuzzerGameSession; message?: string } {
+    const targetGroup = session.groups.find(g => g.id === groupId);
+    if (!targetGroup) {
+      return { success: false, session, message: 'Kelompok tidak ditemukan.' };
+    }
+
+    // Jika kelompok sudah diklaim oleh orang lain
+    if (targetGroup.claimedByStudentId && targetGroup.claimedByStudentId !== studentId) {
+      return {
+        success: false,
+        session,
+        message: `Kelompok ini sudah dipegang oleh ${targetGroup.claimedByStudentName || 'siswa lain'}. Hanya 1 perwakilan resmi per kelompok!`
+      };
+    }
+
+    // Lepas klaim kelompok lama siswa ini jika pernah memilih kelompok lain
+    const updatedGroups = session.groups.map(g => {
+      if (g.claimedByStudentId === studentId && g.id !== groupId) {
+        return {
+          ...g,
+          claimedByStudentId: undefined,
+          claimedByStudentName: undefined,
+          claimedByStudentNisn: undefined,
+          claimedAt: undefined
+        };
+      }
+      if (g.id === groupId) {
+        return {
+          ...g,
+          claimedByStudentId: studentId,
+          claimedByStudentName: studentName,
+          claimedByStudentNisn: studentNisn,
+          claimedAt: Date.now()
+        };
+      }
+      return g;
+    });
+
+    const updated: BuzzerGameSession = {
+      ...session,
+      groups: updatedGroups
+    };
+
+    this.broadcast(updated, 'CLAIM_GROUP');
+    return { success: true, session: updated };
+  }
+
+  // Anti-Cheat: Lepas klaim sukarela saat siswa keluar/ganti
+  public releaseGroup(
+    session: BuzzerGameSession,
+    groupId: string,
+    studentId: string
+  ): BuzzerGameSession {
+    const updatedGroups = session.groups.map(g => {
+      if (g.id === groupId && g.claimedByStudentId === studentId) {
+        return {
+          ...g,
+          claimedByStudentId: undefined,
+          claimedByStudentName: undefined,
+          claimedByStudentNisn: undefined,
+          claimedAt: undefined
+        };
+      }
+      return g;
+    });
+
+    const updated: BuzzerGameSession = {
+      ...session,
+      groups: updatedGroups
+    };
+
+    this.broadcast(updated, 'RELEASE_GROUP');
+    return updated;
+  }
+
+  // Anti-Cheat: Guru me-reset/kick perwakilan kelompok jika salah orang
+  public kickGroupClaim(session: BuzzerGameSession, groupId: string): BuzzerGameSession {
+    const updatedGroups = session.groups.map(g => {
+      if (g.id === groupId) {
+        return {
+          ...g,
+          claimedByStudentId: undefined,
+          claimedByStudentName: undefined,
+          claimedByStudentNisn: undefined,
+          claimedAt: undefined
+        };
+      }
+      return g;
+    });
+
+    const updated: BuzzerGameSession = {
+      ...session,
+      groups: updatedGroups
+    };
+
+    this.broadcast(updated, 'KICK_CLAIM');
+    return updated;
+  }
+
   // Action: Guru membuka Bel (Ready for speed battle)
   public openBuzzer(session: BuzzerGameSession): BuzzerGameSession {
     const updated: BuzzerGameSession = {
@@ -213,19 +319,30 @@ class BuzzerService {
     return updated;
   }
 
-  // Action: Siswa menekan bel (Fastest buzz lock)
+  // Action: Siswa menekan bel (Strict Anti-Cheat & Fast Lock)
   public pressBuzzer(
     session: BuzzerGameSession,
     groupId: string,
-    studentName: string
-  ): { success: boolean; session: BuzzerGameSession } {
-    // Only accept buzz if phase is open and no winner has locked yet
+    studentId: string,
+    studentName: string,
+    studentNisn?: string
+  ): { success: boolean; session: BuzzerGameSession; errorReason?: string } {
+    // 1. Validasi status sesi
     if (session.phase !== 'buzzer_open' || session.buzzerWinner !== null) {
-      return { success: false, session };
+      return { success: false, session, errorReason: 'Bel belum dibuka atau sudah terkunci!' };
     }
 
     const group = session.groups.find(g => g.id === groupId);
-    if (!group) return { success: false, session };
+    if (!group) return { success: false, session, errorReason: 'Kelompok tidak valid' };
+
+    // 2. Anti-Cheat: Pastikan hanya pemegang sah kelompok yang bisa menekan
+    if (group.claimedByStudentId && group.claimedByStudentId !== studentId) {
+      return {
+        success: false,
+        session,
+        errorReason: `Akses Ditolak! Anda bukan perwakilan resmi ${group.name}`
+      };
+    }
 
     const pressTime = Date.now();
     const timeTakenMs = session.buzzerOpenedAt ? pressTime - session.buzzerOpenedAt : 0;
@@ -235,7 +352,9 @@ class BuzzerService {
       groupName: group.name,
       groupColor: group.color,
       avatarIcon: group.avatarIcon,
+      studentId,
       studentName,
+      studentNisn: studentNisn || group.claimedByStudentNisn,
       pressedAt: pressTime,
       timeTakenMs
     };
@@ -249,6 +368,19 @@ class BuzzerService {
 
     this.broadcast(updated, 'PRESS_BUZZER');
     return { success: true, session: updated };
+  }
+
+  // Anti-Cheat: Guru membatalkan pemenang jika ketahuan curang/salah orang
+  public disqualifyWinner(session: BuzzerGameSession, reopenBuzzer: boolean = false): BuzzerGameSession {
+    const updated: BuzzerGameSession = {
+      ...session,
+      buzzerWinner: null,
+      phase: reopenBuzzer ? 'buzzer_open' : 'ready',
+      buzzerOpenedAt: reopenBuzzer ? Date.now() : null
+    };
+
+    this.broadcast(updated, 'DISQUALIFY_WINNER');
+    return updated;
   }
 
   // Action: Guru memberikan poin (Benar / Salah)

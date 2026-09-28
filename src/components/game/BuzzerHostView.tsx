@@ -220,6 +220,17 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
     onUpdateSession?.(updated);
   };
 
+  const handleDisqualifyWinner = () => {
+    soundEngine.playWrongAnswer();
+    const updated = buzzerService.disqualifyWinner(session, false);
+    onUpdateSession?.(updated);
+  };
+
+  const handleKickGroup = (groupId: string) => {
+    const updated = buzzerService.kickGroupClaim(session, groupId);
+    onUpdateSession?.(updated);
+  };
+
   // Sort groups by score descending for podium/ranking
   const sortedGroups = [...session.groups].sort((a, b) => b.score - a.score);
 
@@ -393,31 +404,47 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
               </div>
             </div>
           ) : session.phase === 'answering' && session.buzzerWinner ? (
-            /* TEAM BUZZER WINNER - ANSWERING STAGE WITH TIMER */
+            /* TEAM BUZZER WINNER - ANSWERING STAGE WITH TIMER & ANTI-CHEAT VERIFICATION */
             <div className="w-full max-w-xl bg-slate-900 border-2 rounded-4xl p-6 md:p-8 text-center space-y-5 shadow-2xl animate-scale-up" style={{
               borderColor: session.buzzerWinner.groupColor
             }}>
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-4xl">{session.buzzerWinner.avatarIcon}</span>
-                <div className="text-left">
-                  <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">
-                    Tercepat Menekan Bel ({session.buzzerWinner.timeTakenMs} ms)
+              <div className="flex items-center justify-between bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 text-left">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">{session.buzzerWinner.avatarIcon}</span>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                      Tercepat Menekan Bel ({session.buzzerWinner.timeTakenMs} ms)
+                    </span>
+                    <h3 className="text-xl font-black text-white" style={{ color: session.buzzerWinner.groupColor }}>
+                      {session.buzzerWinner.groupName}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                    Ditekan Oleh:
                   </span>
-                  <h3 className="text-2xl md:text-3xl font-black text-white" style={{ color: session.buzzerWinner.groupColor }}>
-                    {session.buzzerWinner.groupName}
-                  </h3>
+                  <span className="text-sm font-black text-emerald-400 block">
+                    {session.buzzerWinner.studentName}
+                  </span>
+                  {session.buzzerWinner.studentNisn && (
+                    <span className="text-[10px] font-mono text-slate-500">
+                      NISN: {session.buzzerWinner.studentNisn}
+                    </span>
+                  )}
                 </div>
               </div>
 
               {/* Countdown Circular Progress Bar */}
               <div className="flex flex-col items-center justify-center py-2">
-                <div className={`w-28 h-28 rounded-full border-8 flex flex-col items-center justify-center transition-all ${
+                <div className={`w-24 h-24 rounded-full border-8 flex flex-col items-center justify-center transition-all ${
                   answerTimer <= 3
                     ? 'border-rose-500 bg-rose-500/20 animate-ping text-rose-400'
                     : 'border-amber-400 bg-amber-500/10 text-amber-300'
                 }`}>
-                  <span className="text-4xl font-black">{answerTimer}</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Detik</span>
+                  <span className="text-3xl font-black">{answerTimer}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider">Detik</span>
                 </div>
                 <span className="text-xs text-slate-400 mt-2 font-medium">
                   Waktu tersisa bagi <strong>{session.buzzerWinner.studentName}</strong> untuk menjawab lisan.
@@ -425,21 +452,33 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
               </div>
 
               {/* Teacher Decision Buttons */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <button
-                  onClick={() => handleAwardPoints(true)}
-                  className="py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm md:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>BENAR (+{session.currentQuestion?.points || session.pointsForCorrect}) (B)</span>
-                </button>
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleAwardPoints(true)}
+                    className="py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>BENAR (+{session.currentQuestion?.points || session.pointsForCorrect}) (B)</span>
+                  </button>
 
+                  <button
+                    onClick={() => handleAwardPoints(false)}
+                    className="py-3.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30 active:scale-95 transition-all"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    <span>SALAH (-{session.penaltyForWrong}) (S)</span>
+                  </button>
+                </div>
+
+                {/* Anti-Cheat Disqualification Action */}
                 <button
-                  onClick={() => handleAwardPoints(false)}
-                  className="py-4 px-6 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm md:text-base flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30 active:scale-95 transition-all"
+                  onClick={handleDisqualifyWinner}
+                  className="w-full py-2 rounded-xl bg-slate-800/80 hover:bg-rose-950 text-rose-400 hover:text-rose-300 border border-slate-700 hover:border-rose-600 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  title="Batalkan jika ditekan oleh siswa yang tidak sah"
                 >
-                  <XCircle className="w-5 h-5" />
-                  <span>SALAH (-{session.penaltyForWrong}) (S)</span>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Diskualifikasi Ronde Ini (Salah Orang / Curang)</span>
                 </button>
               </div>
             </div>
@@ -532,21 +571,22 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
           </div>
         </div>
 
-        {/* RIGHT 4 COLS: Live Scoreboard & Leaderboard Podium */}
+        {/* RIGHT 4 COLS: Live Scoreboard & Perwakilan Slots */}
         <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-amber-400" />
               <h3 className="text-sm font-black text-white">
-                Papan Skor Kelompok
+                Papan Skor & Perwakilan
               </h3>
             </div>
-            <span className="text-[10px] font-bold text-slate-500">
-              {session.groups.length} Tim Bertanding
+            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" />
+              <span>Anti-Curang 1 HP</span>
             </span>
           </div>
 
-          {/* Group Cards List */}
+          {/* Group Cards List with Perwakilan Slot Indicator */}
           <div className="space-y-2.5 overflow-y-auto max-h-[460px] pr-1">
             {sortedGroups.map((group, rankIdx) => {
               const isWinner = session.buzzerWinner?.groupId === group.id;
@@ -554,61 +594,82 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
               return (
                 <div
                   key={group.id}
-                  className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                  className={`p-3 rounded-2xl border transition-all flex flex-col gap-2 ${
                     isWinner
                       ? 'bg-indigo-950/70 border-indigo-400 ring-2 ring-indigo-500/40 shadow-lg'
                       : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 ${
-                      rankIdx === 0
-                        ? 'bg-amber-400 text-slate-950 shadow-xs'
-                        : rankIdx === 1
-                        ? 'bg-slate-300 text-slate-950'
-                        : rankIdx === 2
-                        ? 'bg-amber-700 text-white'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}>
-                      {rankIdx + 1}
-                    </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 ${
+                        rankIdx === 0
+                          ? 'bg-amber-400 text-slate-950 shadow-xs'
+                          : rankIdx === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : rankIdx === 2
+                          ? 'bg-amber-700 text-white'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {rankIdx + 1}
+                      </span>
 
-                    <span className="text-xl shrink-0">{group.avatarIcon}</span>
+                      <span className="text-lg shrink-0">{group.avatarIcon}</span>
 
-                    <div className="min-w-0">
-                      <span className="text-xs font-black text-white block truncate">
+                      <span className="text-xs font-black text-white truncate max-w-[110px]">
                         {group.name}
                       </span>
-                      {isWinner && (
-                        <span className="text-[10px] font-bold text-emerald-400 animate-pulse">
-                          🔔 Sedang Menjawab
-                        </span>
-                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-black text-amber-400">
+                        {group.score}
+                      </span>
+
+                      {/* Quick Manual Adjust buttons for host */}
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => handleAdjustScore(group.id, 50)}
+                          className="w-5 h-5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 font-bold text-xs flex items-center justify-center transition-all"
+                          title="+50 Poin Manual"
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={() => handleAdjustScore(group.id, -50)}
+                          className="w-5 h-5 rounded-md bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center transition-all"
+                          title="-50 Poin Manual"
+                        >
+                          -
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-base font-black text-amber-400">
-                      {group.score}
-                    </span>
-
-                    {/* Quick Manual Adjust buttons for host */}
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={() => handleAdjustScore(group.id, 50)}
-                        className="w-6 h-6 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 font-bold text-xs flex items-center justify-center transition-all"
-                        title="+50 Poin Manual"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => handleAdjustScore(group.id, -50)}
-                        className="w-6 h-6 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center transition-all"
-                        title="-50 Poin Manual"
-                      >
-                        -
-                      </button>
+                  {/* Anti-Cheat Perwakilan Info & Kick button */}
+                  <div className="flex items-center justify-between text-[10px] bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-800">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="text-slate-500 font-semibold">HP:</span>
+                      {group.claimedByStudentName ? (
+                        <span className="text-emerald-400 font-bold truncate">
+                          {group.claimedByStudentName}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 italic">
+                          Belum terhubung
+                        </span>
+                      )}
                     </div>
+
+                    {group.claimedByStudentName && (
+                      <button
+                        onClick={() => handleKickGroup(group.id)}
+                        className="text-rose-400 hover:text-rose-300 font-bold hover:underline shrink-0 ml-2"
+                        title="Lepas koneksi HP siswa ini jika salah orang"
+                      >
+                        Reset
+                      </button>
+                    )}
                   </div>
                 </div>
               );

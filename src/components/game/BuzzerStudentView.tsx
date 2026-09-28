@@ -17,18 +17,25 @@ import {
   Award,
   ArrowLeft,
   Flame,
-  Radio
+  Radio,
+  Lock,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
 
 interface BuzzerStudentViewProps {
   session: BuzzerGameSession;
+  studentId: string;
   studentName: string;
+  studentNisn?: string;
   onExit: () => void;
 }
 
 export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   session,
+  studentId,
   studentName,
+  studentNisn,
   onExit
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<string>(() => {
@@ -37,11 +44,29 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
-  const [showGroupSelector, setShowGroupSelector] = useState(!selectedGroupId);
+  const [claimErrorMessage, setClaimErrorMessage] = useState<string | null>(null);
+  
+  // Anti-Spam & False Start cooldown
+  const [spamWarning, setSpamWarning] = useState<string | null>(null);
+  const [isCooldownActive, setIsCooldownActive] = useState(false);
+  const spamCountRef = useRef(0);
   const lastPhaseRef = useRef(session.phase);
 
+  // Sync group claim status with session
   const myGroup = session.groups.find(g => g.id === selectedGroupId);
+  const isClaimedByMe = myGroup?.claimedByStudentId === studentId;
   const isMyGroupWinner = session.buzzerWinner?.groupId === selectedGroupId;
+
+  // If local selected group was released or kicked by teacher, reset
+  useEffect(() => {
+    if (selectedGroupId) {
+      const g = session.groups.find(x => x.id === selectedGroupId);
+      if (g && g.claimedByStudentId && g.claimedByStudentId !== studentId) {
+        setSelectedGroupId('');
+        localStorage.removeItem(`buzzer_selected_group_${session.classId}`);
+      }
+    }
+  }, [session.groups, selectedGroupId, studentId, session.classId]);
 
   // Handle Fullscreen
   const toggleFullscreen = () => {
@@ -68,6 +93,17 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   useEffect(() => {
     if (session.phase !== lastPhaseRef.current) {
       if (session.phase === 'buzzer_open') {
+        // If student had spam violations, activate 1.5s penalty cooldown
+        if (spamCountRef.current >= 3) {
+          setIsCooldownActive(true);
+          setSpamWarning('⚠️ Penalti Spam: Tombol beku 1.5 detik!');
+          setTimeout(() => {
+            setIsCooldownActive(false);
+            setSpamWarning(null);
+            spamCountRef.current = 0;
+          }, 1500);
+        }
+
         audioEffects.playBuzzerOpen();
         if ('vibrate' in navigator) {
           try { navigator.vibrate([100, 50, 100, 50, 200]); } catch (e) {}
@@ -90,20 +126,42 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
     }
   }, [session.phase, session.buzzerWinner, selectedGroupId, isMyGroupWinner]);
 
-  // Save selected group
+  // Claim Group Handler (Anti-Duplicate Device Lock)
   const handleSelectGroup = (group: GameGroup) => {
-    setSelectedGroupId(group.id);
-    localStorage.setItem(`buzzer_selected_group_${session.classId}`, group.id);
-    setShowGroupSelector(false);
+    setClaimErrorMessage(null);
+    const result = buzzerService.claimGroup(
+      session,
+      group.id,
+      studentId,
+      studentName,
+      studentNisn
+    );
+
+    if (result.success) {
+      setSelectedGroupId(group.id);
+      localStorage.setItem(`buzzer_selected_group_${session.classId}`, group.id);
+    } else {
+      setClaimErrorMessage(result.message || 'Kelompok ini sudah diklaim oleh perwakilan lain.');
+    }
   };
 
   // Buzzer Press Handler
   const handleBuzzerClick = useCallback(() => {
-    if (!selectedGroupId) {
-      setShowGroupSelector(true);
+    if (!selectedGroupId || !isClaimedByMe) {
       return;
     }
-    if (session.phase !== 'buzzer_open' || session.buzzerWinner) {
+
+    // False Start / Early Tap Protection
+    if (session.phase !== 'buzzer_open') {
+      spamCountRef.current += 1;
+      if (spamCountRef.current >= 3) {
+        setSpamWarning('⚠️ Jangan spam klik sebelum bel dibuka!');
+        setTimeout(() => setSpamWarning(null), 2000);
+      }
+      return;
+    }
+
+    if (isCooldownActive || session.buzzerWinner) {
       return;
     }
 
@@ -115,9 +173,15 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
       try { navigator.vibrate(200); } catch (e) {}
     }
 
-    // Trigger service
-    buzzerService.pressBuzzer(session, selectedGroupId, studentName || 'Perwakilan Siswa');
-  }, [session, selectedGroupId, studentName]);
+    // Trigger service with authenticated user data
+    buzzerService.pressBuzzer(
+      session,
+      selectedGroupId,
+      studentId,
+      studentName,
+      studentNisn
+    );
+  }, [session, selectedGroupId, isClaimedByMe, isCooldownActive, studentId, studentName, studentNisn]);
 
   // Touch handlers for maximum speed & prevent scrolling on button
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -125,8 +189,8 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
     handleBuzzerClick();
   };
 
-  // Render Group Selector Modal
-  if (showGroupSelector || !myGroup) {
+  // Render Group Selector Modal if no group claimed yet
+  if (!selectedGroupId || !myGroup || !isClaimedByMe) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 md:p-8">
         {/* Header */}
@@ -149,45 +213,84 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
               <Zap className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-black tracking-tight text-white">Pilih Kelompok Anda</h2>
-            <p className="text-slate-400 text-sm mt-1">
-              Pilih identitas regu kelompok yang Anda wakili untuk ronde cerdas cermat ini
+            <p className="text-slate-400 text-xs mt-1">
+              Setiap kelompok hanya dapat dipegang oleh <strong>1 HP / perwakilan resmi</strong> untuk mencegah kecurangan.
             </p>
           </div>
 
+          {claimErrorMessage && (
+            <div className="mb-4 p-3 bg-rose-500/20 border border-rose-500/40 rounded-2xl flex items-center gap-2.5 text-xs text-rose-300 font-semibold animate-shake">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{claimErrorMessage}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mb-6">
-            {session.groups.map((group, idx) => (
-              <button
-                key={group.id}
-                onClick={() => handleSelectGroup(group)}
-                className={`p-4 rounded-2xl border-2 text-left flex flex-col items-center justify-center gap-2 transition-all transform active:scale-95 group hover:shadow-lg ${
-                  selectedGroupId === group.id 
-                    ? 'border-white bg-slate-800 ring-4 ring-indigo-500/30' 
-                    : 'border-slate-800 bg-slate-800/50 hover:border-slate-700 hover:bg-slate-800'
-                }`}
-                style={{
-                  borderColor: selectedGroupId === group.id ? group.color : undefined
-                }}
-              >
-                <div 
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-md transition-transform group-hover:scale-110"
-                  style={{ backgroundColor: `${group.color}25`, border: `2px solid ${group.color}` }}
+            {session.groups.map((group, idx) => {
+              const isClaimedByOther = group.claimedByStudentId && group.claimedByStudentId !== studentId;
+              const isMine = group.claimedByStudentId === studentId;
+
+              return (
+                <button
+                  key={group.id}
+                  disabled={Boolean(isClaimedByOther)}
+                  onClick={() => handleSelectGroup(group)}
+                  className={`p-3.5 rounded-2xl border-2 text-left flex flex-col items-center justify-center gap-2 transition-all transform group relative ${
+                    isClaimedByOther
+                      ? 'border-slate-800 bg-slate-950/60 opacity-60 cursor-not-allowed'
+                      : isMine
+                      ? 'border-white bg-slate-800 ring-4 ring-indigo-500/30 active:scale-95'
+                      : 'border-slate-800 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800 active:scale-95 shadow-md'
+                  }`}
+                  style={{
+                    borderColor: isMine ? group.color : isClaimedByOther ? '#334155' : undefined
+                  }}
                 >
-                  {group.avatarIcon}
-                </div>
-                <div className="text-center">
-                  <span className="text-xs font-bold uppercase tracking-wider block" style={{ color: group.color }}>
-                    Regu {idx + 1}
-                  </span>
-                  <span className="text-sm font-bold text-white block truncate max-w-[130px]">
-                    {group.name.replace(/Kelompok \d+ - /, '')}
-                  </span>
-                </div>
-              </button>
-            ))}
+                  {/* Status Badge */}
+                  {isClaimedByOther ? (
+                    <div className="absolute top-2 right-2 bg-rose-950 text-rose-400 border border-rose-800 p-1 rounded-full text-[10px]" title={`Sudah dipegang oleh ${group.claimedByStudentName}`}>
+                      <Lock className="w-3 h-3" />
+                    </div>
+                  ) : isMine ? (
+                    <div className="absolute top-2 right-2 bg-emerald-500 text-slate-950 p-1 rounded-full text-[10px]">
+                      <ShieldCheck className="w-3 h-3" />
+                    </div>
+                  ) : null}
+
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-md transition-transform group-hover:scale-105"
+                    style={{ backgroundColor: `${group.color}25`, border: `2px solid ${group.color}` }}
+                  >
+                    {group.avatarIcon}
+                  </div>
+
+                  <div className="text-center w-full">
+                    <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: group.color }}>
+                      Regu {idx + 1}
+                    </span>
+                    <span className="text-xs font-bold text-white block truncate max-w-[120px]">
+                      {group.name.replace(/Kelompok \d+ - /, '')}
+                    </span>
+
+                    {/* Show Claimed Name */}
+                    {isClaimedByOther ? (
+                      <span className="text-[9px] text-rose-400 font-bold block truncate mt-1 bg-rose-500/10 px-1.5 py-0.5 rounded-md">
+                        🔒 {group.claimedByStudentName?.split(' ')[0]}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-emerald-400 font-semibold block mt-1">
+                        🟢 Tersedia
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800 text-xs text-slate-400 text-center">
-            💡 Pastikan hanya 1 perwakilan kelompok yang menekan bel di setiap sesi!
+          <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 text-[11px] text-slate-400 text-center flex items-center justify-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Sistem mengunci 1 HP per kelompok untuk menjamin kejujuran</span>
           </div>
         </div>
 
@@ -212,31 +315,31 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
 
       {/* Top Status Bar */}
       <header className="relative z-10 p-3 md:p-4 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 flex items-center justify-between">
-        {/* Group Badge / Selector trigger */}
-        <button 
-          onClick={() => setShowGroupSelector(true)}
-          className="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700/80 px-3 py-1.5 rounded-xl border border-slate-700 transition"
-        >
+        {/* Group Badge / Verified Info */}
+        <div className="flex items-center gap-2.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
           <span className="text-2xl">{myGroup.avatarIcon}</span>
           <div className="text-left">
-            <div className="text-[10px] uppercase font-bold tracking-wider" style={{ color: myGroup.color }}>
-              Kelompok Anda
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] uppercase font-bold tracking-wider" style={{ color: myGroup.color }}>
+                {myGroup.name}
+              </span>
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
             </div>
-            <div className="text-xs font-bold text-white truncate max-w-[120px] md:max-w-[180px]">
-              {myGroup.name}
+            <div className="text-[11px] font-bold text-slate-200 truncate max-w-[110px] md:max-w-[160px]">
+              {studentName}
             </div>
           </div>
-        </button>
+        </div>
 
         {/* Center Round & Score */}
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-950 border border-slate-800 px-3 py-1 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-semibold">RONDE</span>
-            <span className="text-sm font-black text-amber-400">{session.roundNumber} / {session.totalRounds}</span>
+        <div className="flex items-center gap-2.5">
+          <div className="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl text-center">
+            <span className="text-[9px] text-slate-400 block font-semibold">RONDE</span>
+            <span className="text-xs sm:text-sm font-black text-amber-400">{session.roundNumber} / {session.totalRounds}</span>
           </div>
-          <div className="bg-slate-950 border border-slate-800 px-3 py-1 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-semibold">SKOR</span>
-            <span className="text-sm font-black text-emerald-400">{myGroup.score}</span>
+          <div className="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl text-center">
+            <span className="text-[9px] text-slate-400 block font-semibold">SKOR</span>
+            <span className="text-xs sm:text-sm font-black text-emerald-400">{myGroup.score}</span>
           </div>
         </div>
 
@@ -260,7 +363,12 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
           <button
-            onClick={onExit}
+            onClick={() => {
+              buzzerService.releaseGroup(session, selectedGroupId, studentId);
+              setSelectedGroupId('');
+              localStorage.removeItem(`buzzer_selected_group_${session.classId}`);
+              onExit();
+            }}
             className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-400"
             title="Keluar"
           >
@@ -272,15 +380,23 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
       {/* Main Content Area / Buzzer Arena */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 text-center max-w-lg mx-auto w-full">
         
+        {/* Anti-Spam Warning Notice */}
+        {spamWarning && (
+          <div className="mb-3 px-4 py-2 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-bold animate-shake flex items-center justify-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <span>{spamWarning}</span>
+          </div>
+        )}
+
         {/* STATUS BANNER */}
-        <div className="mb-6 w-full">
+        <div className="mb-4 w-full">
           {session.phase === 'lobby' && (
             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
               <div className="inline-flex items-center gap-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-semibold mb-2">
                 <Users className="w-3.5 h-3.5" /> LOBBY PERMAINAN
               </div>
               <h3 className="text-lg font-bold text-white">Menunggu Guru Memulai</h3>
-              <p className="text-slate-400 text-xs mt-1">Siapkan diri dan jari Anda untuk adu cepat!</p>
+              <p className="text-slate-400 text-xs mt-1">Anda adalah perwakilan sah untuk <strong>{myGroup.name}</strong></p>
             </div>
           )}
 
@@ -290,7 +406,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
                 <Clock className="w-3.5 h-3.5" /> DENGARKAN SOAL GURU
               </div>
               <h3 className="text-lg font-bold text-amber-200">Bel Masih Terkunci</h3>
-              <p className="text-amber-300/70 text-xs mt-1">Tunggu aba-aba saat bel dibuka oleh guru</p>
+              <p className="text-amber-300/70 text-xs mt-1">Jangan spam klik! Tunggu aba-aba bel dibuka</p>
             </div>
           )}
 
@@ -329,7 +445,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
                     {session.buzzerWinner?.groupName} Lebih Cepat!
                   </h3>
                   <p className="text-slate-400 text-xs mt-1">
-                    Waktu reaksi: <span className="text-indigo-400 font-bold">{(session.buzzerWinner?.timeTakenMs || 0) / 1000}s</span>
+                    Ditekan oleh: <span className="text-indigo-400 font-bold">{session.buzzerWinner?.studentName}</span> ({(session.buzzerWinner?.timeTakenMs || 0) / 1000}s)
                   </p>
                 </div>
               )}
@@ -355,7 +471,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
         {/* GIANT 3D BUZZER BUTTON */}
         <div className="relative flex items-center justify-center my-auto">
           {/* Pulsing ring when active */}
-          {session.phase === 'buzzer_open' && (
+          {session.phase === 'buzzer_open' && !isCooldownActive && (
             <div className="absolute -inset-6 rounded-full bg-emerald-500/30 animate-ping pointer-events-none" />
           )}
 
@@ -364,9 +480,11 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             <button
               onClick={handleBuzzerClick}
               onTouchStart={handleTouchStart}
-              disabled={session.phase !== 'buzzer_open' || !!session.buzzerWinner}
+              disabled={session.phase !== 'buzzer_open' || !!session.buzzerWinner || isCooldownActive}
               className={`w-64 h-64 sm:w-72 sm:h-72 rounded-full font-black text-2xl tracking-wider transition-all duration-100 flex flex-col items-center justify-center gap-3 relative select-none shadow-2xl cursor-pointer ${
-                session.phase === 'buzzer_open'
+                isCooldownActive
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border-4 border-rose-500/50'
+                  : session.phase === 'buzzer_open'
                   ? 'bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-700 text-slate-950 shadow-emerald-500/50 hover:brightness-110 active:translate-y-2 active:shadow-inner ring-8 ring-emerald-400/40'
                   : isMyGroupWinner
                   ? 'bg-gradient-to-b from-amber-400 via-yellow-500 to-amber-600 text-slate-950 ring-8 ring-amber-400/40 translate-y-2 shadow-inner'
@@ -379,7 +497,14 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
               <div className="absolute top-4 inset-x-10 h-16 bg-white/20 rounded-full blur-[2px] pointer-events-none" />
 
               {/* Icon / State */}
-              {session.phase === 'buzzer_open' ? (
+              {isCooldownActive ? (
+                <>
+                  <AlertTriangle className="w-14 h-14 text-rose-400 animate-bounce" />
+                  <span className="text-base font-black text-rose-300">
+                    COOLDOWN
+                  </span>
+                </>
+              ) : session.phase === 'buzzer_open' ? (
                 <>
                   <Flame className="w-16 h-16 text-slate-950 animate-bounce fill-slate-950" />
                   <span className="text-2xl font-black tracking-tight leading-tight">
@@ -416,7 +541,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
         <p className="text-slate-500 text-xs mt-6">
           {session.phase === 'buzzer_open' 
             ? '🔥 Tekan secepat mungkin saat bel dibuka!' 
-            : 'Sentuh layar penuh untuk memperbesar tombol'}
+            : 'Perwakilan resmi terdaftar di proyektor guru'}
         </p>
       </main>
 

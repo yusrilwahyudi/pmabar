@@ -12,6 +12,7 @@ interface BuzzerGameArenaProps {
     id: string;
     name: string;
     role: 'guru' | 'siswa' | 'admin';
+    idNumber?: string;
   };
   onExit: () => void;
 }
@@ -77,7 +78,9 @@ export const BuzzerGameArena: React.FC<BuzzerGameArenaProps> = ({
     <div className="relative">
       <BuzzerStudentView
         session={session}
+        studentId={currentUser.id}
         studentName={currentUser.name || 'Perwakilan Siswa'}
+        studentNisn={currentUser.idNumber}
         onExit={() => {
           if (isTeacher && previewAsStudent) {
             setPreviewAsStudent(false);

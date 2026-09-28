@@ -15,6 +15,10 @@ export interface GameGroup {
   avatarIcon: string;     // Emoji icon e.g. 🦁, 🦅, 🚀, ⚡, 🐯, 🐉
   score: number;
   membersCount: number;
+  claimedByStudentId?: string;    // ID akun siswa perwakilan resmi
+  claimedByStudentName?: string;  // Nama siswa perwakilan resmi
+  claimedByStudentNisn?: string;  // NISN siswa
+  claimedAt?: number;             // Waktu slot dikunci
   lastBuzzerTime?: number;
 }
 
@@ -23,7 +27,9 @@ export interface BuzzerWinner {
   groupName: string;
   groupColor: string;
   avatarIcon: string;
+  studentId: string;
   studentName: string;
+  studentNisn?: string;
   pressedAt: number;     // timestamp in ms
   timeTakenMs: number;   // reaction time in ms
 }
@@ -57,15 +63,20 @@ export interface BuzzerGameSession {
 export interface BuzzerEventPayload {
   type:
     | 'STATE_SYNC'
+    | 'CLAIM_GROUP'
+    | 'RELEASE_GROUP'
+    | 'KICK_CLAIM'
     | 'OPEN_BUZZER'
     | 'PRESS_BUZZER'
     | 'LOCK_BUZZER'
+    | 'DISQUALIFY_WINNER'
     | 'AWARD_POINTS'
     | 'RESET_ROUND'
     | 'UPDATE_QUESTION'
     | 'END_GAME';
   session: BuzzerGameSession;
   pressedGroupId?: string;
+  pressedStudentId?: string;
   pressedStudentName?: string;
   pressedTimestamp?: number;
 }
