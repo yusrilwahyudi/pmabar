@@ -306,6 +306,82 @@ class BuzzerService {
     return updated;
   }
 
+  // Action: Ubah Nama, Avatar, & Warna Kelompok (Kustomisasi Siswa / Guru)
+  public updateGroupCustomization(
+    session: BuzzerGameSession,
+    groupId: string,
+    name: string,
+    avatarIcon: string,
+    color?: string
+  ): BuzzerGameSession {
+    const updatedGroups = session.groups.map(g => {
+      if (g.id === groupId) {
+        return {
+          ...g,
+          name: name.trim() || g.name,
+          avatarIcon: avatarIcon || g.avatarIcon,
+          color: color || g.color
+        };
+      }
+      return g;
+    });
+
+    const updated: BuzzerGameSession = {
+      ...session,
+      groups: updatedGroups
+    };
+
+    this.broadcast(updated, 'UPDATE_GROUP');
+    return updated;
+  }
+
+  // Action: Tambah Kelompok Baru (Maks 8)
+  public addGroup(
+    session: BuzzerGameSession,
+    customName?: string,
+    avatarIcon?: string,
+    color?: string
+  ): BuzzerGameSession {
+    if (session.groups.length >= 8) return session;
+
+    const nextIdx = session.groups.length + 1;
+    const defaultAvatars = ['🦁', '🦅', '🐉', '🦚', '⚡', '🦏', '🦈', '🚀'];
+    const defaultColors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
+
+    const newGroup: GameGroup = {
+      id: `group-${Date.now()}`,
+      name: customName || `Kelompok ${nextIdx}`,
+      color: color || defaultColors[(nextIdx - 1) % defaultColors.length],
+      accentBg: 'bg-slate-800 text-slate-200',
+      borderColor: 'border-slate-600',
+      avatarIcon: avatarIcon || defaultAvatars[(nextIdx - 1) % defaultAvatars.length],
+      score: 0,
+      membersCount: 0
+    };
+
+    const updated: BuzzerGameSession = {
+      ...session,
+      groups: [...session.groups, newGroup]
+    };
+
+    this.broadcast(updated, 'ADD_GROUP');
+    return updated;
+  }
+
+  // Action: Hapus Kelompok (Min 2)
+  public removeGroup(session: BuzzerGameSession, groupId: string): BuzzerGameSession {
+    if (session.groups.length <= 2) return session;
+
+    const updatedGroups = session.groups.filter(g => g.id !== groupId);
+    const updated: BuzzerGameSession = {
+      ...session,
+      groups: updatedGroups
+    };
+
+    this.broadcast(updated, 'REMOVE_GROUP');
+    return updated;
+  }
+
   // Action: Guru membuka Bel (Ready for speed battle)
   public openBuzzer(session: BuzzerGameSession): BuzzerGameSession {
     const updated: BuzzerGameSession = {

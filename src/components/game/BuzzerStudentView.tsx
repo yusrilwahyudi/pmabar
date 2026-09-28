@@ -20,7 +20,9 @@ import {
   Radio,
   Lock,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Edit3,
+  X
 } from 'lucide-react';
 
 interface BuzzerStudentViewProps {
@@ -30,6 +32,9 @@ interface BuzzerStudentViewProps {
   studentNisn?: string;
   onExit: () => void;
 }
+
+const AVAILABLE_AVATARS = ['🦅', '🦁', '🐯', '🐉', '🦚', '⚡', '🦏', '🦈', '🚀', '🐺', '👑', '🔥', '🦄', '🐼', '🦖', '🎯'];
+const AVAILABLE_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
 
 export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   session,
@@ -46,6 +51,12 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   const [isPressing, setIsPressing] = useState(false);
   const [claimErrorMessage, setClaimErrorMessage] = useState<string | null>(null);
   
+  // Customization modal for student
+  const [isCustomizingGroup, setIsCustomizingGroup] = useState(false);
+  const [customNameInput, setCustomNameInput] = useState('');
+  const [customAvatarInput, setCustomAvatarInput] = useState('🦅');
+  const [customColorInput, setCustomColorInput] = useState('#EF4444');
+
   // Anti-Spam & False Start cooldown
   const [spamWarning, setSpamWarning] = useState<string | null>(null);
   const [isCooldownActive, setIsCooldownActive] = useState(false);
@@ -56,6 +67,15 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   const myGroup = session.groups.find(g => g.id === selectedGroupId);
   const isClaimedByMe = myGroup?.claimedByStudentId === studentId;
   const isMyGroupWinner = session.buzzerWinner?.groupId === selectedGroupId;
+
+  // Initialize custom form inputs when group is selected
+  useEffect(() => {
+    if (myGroup) {
+      setCustomNameInput(myGroup.name);
+      setCustomAvatarInput(myGroup.avatarIcon);
+      setCustomColorInput(myGroup.color);
+    }
+  }, [myGroup?.id]);
 
   // If local selected group was released or kicked by teacher, reset
   useEffect(() => {
@@ -145,6 +165,21 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
     }
   };
 
+  // Student Saves Custom Group Name & Avatar
+  const handleSaveGroupCustomization = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGroupId || !customNameInput.trim()) return;
+
+    buzzerService.updateGroupCustomization(
+      session,
+      selectedGroupId,
+      customNameInput.trim(),
+      customAvatarInput,
+      customColorInput
+    );
+    setIsCustomizingGroup(false);
+  };
+
   // Buzzer Press Handler
   const handleBuzzerClick = useCallback(() => {
     if (!selectedGroupId || !isClaimedByMe) {
@@ -207,14 +242,14 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
         </div>
 
         {/* Modal Selection Box */}
-        <div className="max-w-md w-full mx-auto my-auto bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-500/20">
-              <Zap className="w-8 h-8 text-white" />
+        <div className="max-w-md w-full mx-auto my-auto bg-slate-900/90 border border-slate-800 rounded-3xl p-5 md:p-7 shadow-2xl backdrop-blur-xl">
+          <div className="text-center mb-5">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center mx-auto mb-2.5 shadow-lg shadow-amber-500/20">
+              <Zap className="w-7 h-7 text-white" />
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-white">Pilih Kelompok Anda</h2>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Pilih Kelompok Anda</h2>
             <p className="text-slate-400 text-xs mt-1">
-              Setiap kelompok hanya dapat dipegang oleh <strong>1 HP / perwakilan resmi</strong> untuk mencegah kecurangan.
+              Setiap kelompok hanya dapat dipegang oleh <strong>1 HP perwakilan</strong>. Anda bisa ganti nama & maskot setelah memilih!
             </p>
           </div>
 
@@ -225,7 +260,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-5 max-h-[360px] overflow-y-auto pr-1">
             {session.groups.map((group, idx) => {
               const isClaimedByOther = group.claimedByStudentId && group.claimedByStudentId !== studentId;
               const isMine = group.claimedByStudentId === studentId;
@@ -235,7 +270,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
                   key={group.id}
                   disabled={Boolean(isClaimedByOther)}
                   onClick={() => handleSelectGroup(group)}
-                  className={`p-3.5 rounded-2xl border-2 text-left flex flex-col items-center justify-center gap-2 transition-all transform group relative ${
+                  className={`p-3 rounded-2xl border-2 text-left flex flex-col items-center justify-center gap-1.5 transition-all transform group relative ${
                     isClaimedByOther
                       ? 'border-slate-800 bg-slate-950/60 opacity-60 cursor-not-allowed'
                       : isMine
@@ -258,27 +293,24 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
                   ) : null}
 
                   <div 
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-md transition-transform group-hover:scale-105"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-md transition-transform group-hover:scale-105"
                     style={{ backgroundColor: `${group.color}25`, border: `2px solid ${group.color}` }}
                   >
                     {group.avatarIcon}
                   </div>
 
                   <div className="text-center w-full">
-                    <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: group.color }}>
-                      Regu {idx + 1}
-                    </span>
-                    <span className="text-xs font-bold text-white block truncate max-w-[120px]">
-                      {group.name.replace(/Kelompok \d+ - /, '')}
+                    <span className="text-[10px] font-bold uppercase tracking-wider block truncate" style={{ color: group.color }}>
+                      {group.name}
                     </span>
 
                     {/* Show Claimed Name */}
                     {isClaimedByOther ? (
-                      <span className="text-[9px] text-rose-400 font-bold block truncate mt-1 bg-rose-500/10 px-1.5 py-0.5 rounded-md">
+                      <span className="text-[9px] text-rose-400 font-bold block truncate mt-0.5 bg-rose-500/10 px-1 py-0.5 rounded">
                         🔒 {group.claimedByStudentName?.split(' ')[0]}
                       </span>
                     ) : (
-                      <span className="text-[9px] text-emerald-400 font-semibold block mt-1">
+                      <span className="text-[9px] text-emerald-400 font-semibold block mt-0.5">
                         🟢 Tersedia
                       </span>
                     )}
@@ -288,7 +320,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             })}
           </div>
 
-          <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 text-[11px] text-slate-400 text-center flex items-center justify-center gap-2">
+          <div className="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800 text-[11px] text-slate-400 text-center flex items-center justify-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>Sistem mengunci 1 HP per kelompok untuk menjamin kejujuran</span>
           </div>
@@ -314,37 +346,43 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
       />
 
       {/* Top Status Bar */}
-      <header className="relative z-10 p-3 md:p-4 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 flex items-center justify-between">
-        {/* Group Badge / Verified Info */}
-        <div className="flex items-center gap-2.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-          <span className="text-2xl">{myGroup.avatarIcon}</span>
+      <header className="relative z-10 p-2.5 sm:p-3.5 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 flex items-center justify-between">
+        {/* Group Badge with Edit Button */}
+        <div className="flex items-center gap-2 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700">
+          <span className="text-xl sm:text-2xl">{myGroup.avatarIcon}</span>
           <div className="text-left">
             <div className="flex items-center gap-1">
-              <span className="text-[10px] uppercase font-bold tracking-wider" style={{ color: myGroup.color }}>
+              <span className="text-[10px] uppercase font-bold tracking-wider truncate max-w-[90px] sm:max-w-[140px]" style={{ color: myGroup.color }}>
                 {myGroup.name}
               </span>
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              <button
+                onClick={() => setIsCustomizingGroup(true)}
+                className="text-slate-400 hover:text-white p-0.5"
+                title="Ganti Nama & Maskot Tim"
+              >
+                <Edit3 className="w-3 h-3 text-indigo-300" />
+              </button>
             </div>
-            <div className="text-[11px] font-bold text-slate-200 truncate max-w-[110px] md:max-w-[160px]">
+            <div className="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate max-w-[100px] sm:max-w-[140px]">
               {studentName}
             </div>
           </div>
         </div>
 
         {/* Center Round & Score */}
-        <div className="flex items-center gap-2.5">
-          <div className="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl text-center">
-            <span className="text-[9px] text-slate-400 block font-semibold">RONDE</span>
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-xl text-center">
+            <span className="text-[8px] text-slate-400 block font-semibold">RONDE</span>
             <span className="text-xs sm:text-sm font-black text-amber-400">{session.roundNumber} / {session.totalRounds}</span>
           </div>
-          <div className="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl text-center">
-            <span className="text-[9px] text-slate-400 block font-semibold">SKOR</span>
+          <div className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-xl text-center">
+            <span className="text-[8px] text-slate-400 block font-semibold">SKOR</span>
             <span className="text-xs sm:text-sm font-black text-emerald-400">{myGroup.score}</span>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => {
               const next = audioEffects.toggleMute();
@@ -353,14 +391,14 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>
           <button
             onClick={toggleFullscreen}
             className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
             title="Fullscreen"
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
           <button
             onClick={() => {
@@ -372,79 +410,79 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-400"
             title="Keluar"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
 
       {/* Main Content Area / Buzzer Arena */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 text-center max-w-lg mx-auto w-full">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-3 sm:p-4 text-center max-w-lg mx-auto w-full">
         
         {/* Anti-Spam Warning Notice */}
         {spamWarning && (
-          <div className="mb-3 px-4 py-2 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-bold animate-shake flex items-center justify-center gap-2">
+          <div className="mb-2 px-3 py-1.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-bold animate-shake flex items-center justify-center gap-2">
             <AlertTriangle className="w-4 h-4 text-rose-400" />
             <span>{spamWarning}</span>
           </div>
         )}
 
         {/* STATUS BANNER */}
-        <div className="mb-4 w-full">
+        <div className="mb-3 w-full">
           {session.phase === 'lobby' && (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
-              <div className="inline-flex items-center gap-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-semibold mb-2">
-                <Users className="w-3.5 h-3.5" /> LOBBY PERMAINAN
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 shadow-xl">
+              <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-1">
+                <Users className="w-3 h-3" /> LOBBY PERMAINAN
               </div>
-              <h3 className="text-lg font-bold text-white">Menunggu Guru Memulai</h3>
-              <p className="text-slate-400 text-xs mt-1">Anda adalah perwakilan sah untuk <strong>{myGroup.name}</strong></p>
+              <h3 className="text-base sm:text-lg font-bold text-white">Menunggu Guru Memulai</h3>
+              <p className="text-slate-400 text-xs mt-0.5">Perwakilan sah: <strong>{myGroup.name}</strong></p>
             </div>
           )}
 
           {session.phase === 'ready' && (
-            <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-4 shadow-xl animate-pulse">
-              <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full text-xs font-bold mb-2">
-                <Clock className="w-3.5 h-3.5" /> DENGARKAN SOAL GURU
+            <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-3.5 shadow-xl animate-pulse">
+              <div className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-[11px] font-bold mb-1">
+                <Clock className="w-3 h-3" /> DENGARKAN SOAL GURU
               </div>
-              <h3 className="text-lg font-bold text-amber-200">Bel Masih Terkunci</h3>
-              <p className="text-amber-300/70 text-xs mt-1">Jangan spam klik! Tunggu aba-aba bel dibuka</p>
+              <h3 className="text-base sm:text-lg font-bold text-amber-200">Bel Masih Terkunci</h3>
+              <p className="text-amber-300/70 text-xs mt-0.5">Tunggu aba-aba bel dibuka guru</p>
             </div>
           )}
 
           {session.phase === 'buzzer_open' && (
-            <div className="bg-emerald-950/60 border-2 border-emerald-400 rounded-2xl p-4 shadow-2xl animate-bounce">
-              <div className="inline-flex items-center gap-2 bg-emerald-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black tracking-widest mb-1 shadow-lg">
-                <Flame className="w-4 h-4 fill-slate-950" /> BEL DIBUKA! CEPAT TEKAN!
+            <div className="bg-emerald-950/60 border-2 border-emerald-400 rounded-2xl p-3.5 shadow-2xl animate-bounce">
+              <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-slate-950 px-3 py-0.5 rounded-full text-xs font-black tracking-widest mb-1 shadow-lg">
+                <Flame className="w-3.5 h-3.5 fill-slate-950" /> BEL DIBUKA! CEPAT TEKAN!
               </div>
-              <h3 className="text-xl font-black text-emerald-300">SIAPA CEPAT DIA DAPAT!</h3>
+              <h3 className="text-lg sm:text-xl font-black text-emerald-300">SIAPA CEPAT DIA DAPAT!</h3>
             </div>
           )}
 
           {session.phase === 'answering' && (
-            <div className={`rounded-2xl p-4 shadow-2xl border-2 ${
+            <div className={`rounded-2xl p-3.5 shadow-2xl border-2 ${
               isMyGroupWinner 
                 ? 'bg-gradient-to-r from-amber-500/30 via-yellow-500/20 to-amber-500/30 border-yellow-400' 
                 : 'bg-slate-900/90 border-slate-700'
             }`}>
               {isMyGroupWinner ? (
                 <div>
-                  <div className="inline-flex items-center gap-2 bg-yellow-400 text-slate-950 px-4 py-1 rounded-full text-xs font-black tracking-wider mb-2 animate-pulse">
-                    <Sparkles className="w-4 h-4" /> KELOMPOK ANDA TERCEPAT!
+                  <div className="inline-flex items-center gap-1.5 bg-yellow-400 text-slate-950 px-3 py-0.5 rounded-full text-xs font-black tracking-wider mb-1 animate-pulse">
+                    <Sparkles className="w-3.5 h-3.5" /> KELOMPOK ANDA TERCEPAT!
                   </div>
-                  <h3 className="text-xl font-black text-white">Silakan Jawab Sekarang!</h3>
-                  <div className="mt-2 text-3xl font-black text-yellow-300 flex items-center justify-center gap-2">
-                    <Clock className="w-6 h-6 animate-spin" />
+                  <h3 className="text-lg font-black text-white">Silakan Jawab Sekarang!</h3>
+                  <div className="mt-1 text-2xl sm:text-3xl font-black text-yellow-300 flex items-center justify-center gap-1.5">
+                    <Clock className="w-5 h-5 animate-spin" />
                     <span>{session.remainingAnswerSeconds}s</span>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <div className="inline-flex items-center gap-2 bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-1 rounded-full text-xs font-bold mb-2">
-                    <XCircle className="w-3.5 h-3.5" /> BEL TERKUNCI
+                  <div className="inline-flex items-center gap-1.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-0.5 rounded-full text-[11px] font-bold mb-1">
+                    <XCircle className="w-3 h-3" /> BEL TERKUNCI
                   </div>
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="text-sm sm:text-base font-bold text-white">
                     {session.buzzerWinner?.groupName} Lebih Cepat!
                   </h3>
-                  <p className="text-slate-400 text-xs mt-1">
+                  <p className="text-slate-400 text-xs mt-0.5">
                     Ditekan oleh: <span className="text-indigo-400 font-bold">{session.buzzerWinner?.studentName}</span> ({(session.buzzerWinner?.timeTakenMs || 0) / 1000}s)
                   </p>
                 </div>
@@ -453,17 +491,17 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           )}
 
           {session.phase === 'round_result' && (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
-              <h3 className="text-lg font-bold text-white">Ronde {session.roundNumber} Selesai</h3>
-              <p className="text-slate-400 text-xs mt-1">Guru sedang mempersiapkan pertanyaan berikutnya...</p>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 shadow-xl">
+              <h3 className="text-base sm:text-lg font-bold text-white">Ronde {session.roundNumber} Selesai</h3>
+              <p className="text-slate-400 text-xs mt-0.5">Guru sedang menyiapkan pertanyaan berikutnya...</p>
             </div>
           )}
 
           {session.phase === 'game_over' && (
-            <div className="bg-gradient-to-b from-indigo-950/80 to-purple-950/80 border border-indigo-500/30 rounded-2xl p-4 shadow-xl">
-              <Trophy className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-              <h3 className="text-xl font-black text-white">Permainan Selesai!</h3>
-              <p className="text-indigo-300 text-xs mt-1">Lihat hasil akhir dan podium di layar utama guru</p>
+            <div className="bg-gradient-to-b from-indigo-950/80 to-purple-950/80 border border-indigo-500/30 rounded-2xl p-3.5 shadow-xl">
+              <Trophy className="w-6 h-6 text-amber-400 mx-auto mb-1" />
+              <h3 className="text-lg font-black text-white">Permainan Selesai!</h3>
+              <p className="text-indigo-300 text-xs mt-0.5">Lihat hasil akhir dan juara di layar proyektor guru</p>
             </div>
           )}
         </div>
@@ -476,12 +514,12 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           )}
 
           {/* 3D Button Container */}
-          <div className="relative p-3 rounded-full bg-gradient-to-b from-slate-800 to-slate-950 border-4 border-slate-700 shadow-2xl shadow-black/80">
+          <div className="relative p-2.5 rounded-full bg-gradient-to-b from-slate-800 to-slate-950 border-4 border-slate-700 shadow-2xl shadow-black/80">
             <button
               onClick={handleBuzzerClick}
               onTouchStart={handleTouchStart}
               disabled={session.phase !== 'buzzer_open' || !!session.buzzerWinner || isCooldownActive}
-              className={`w-64 h-64 sm:w-72 sm:h-72 rounded-full font-black text-2xl tracking-wider transition-all duration-100 flex flex-col items-center justify-center gap-3 relative select-none shadow-2xl cursor-pointer ${
+              className={`w-60 h-60 sm:w-68 sm:h-68 rounded-full font-black text-2xl tracking-wider transition-all duration-100 flex flex-col items-center justify-center gap-2.5 relative select-none shadow-2xl cursor-pointer ${
                 isCooldownActive
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border-4 border-rose-500/50'
                   : session.phase === 'buzzer_open'
@@ -494,41 +532,41 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
               } ${isPressing ? 'scale-95 translate-y-2' : ''}`}
             >
               {/* Inner Glossy Effect */}
-              <div className="absolute top-4 inset-x-10 h-16 bg-white/20 rounded-full blur-[2px] pointer-events-none" />
+              <div className="absolute top-4 inset-x-8 h-14 bg-white/20 rounded-full blur-[2px] pointer-events-none" />
 
               {/* Icon / State */}
               {isCooldownActive ? (
                 <>
-                  <AlertTriangle className="w-14 h-14 text-rose-400 animate-bounce" />
-                  <span className="text-base font-black text-rose-300">
+                  <AlertTriangle className="w-12 h-12 text-rose-400 animate-bounce" />
+                  <span className="text-sm font-black text-rose-300">
                     COOLDOWN
                   </span>
                 </>
               ) : session.phase === 'buzzer_open' ? (
                 <>
-                  <Flame className="w-16 h-16 text-slate-950 animate-bounce fill-slate-950" />
-                  <span className="text-2xl font-black tracking-tight leading-tight">
+                  <Flame className="w-14 h-14 text-slate-950 animate-bounce fill-slate-950" />
+                  <span className="text-xl font-black tracking-tight leading-tight">
                     TEKAN<br />SEKARANG!
                   </span>
                 </>
               ) : isMyGroupWinner ? (
                 <>
-                  <Sparkles className="w-16 h-16 text-slate-950 animate-spin" />
-                  <span className="text-xl font-black tracking-tight">
+                  <Sparkles className="w-14 h-14 text-slate-950 animate-spin" />
+                  <span className="text-lg font-black tracking-tight">
                     GILIRAN<br />MENJAWAB
                   </span>
                 </>
               ) : session.buzzerWinner ? (
                 <>
-                  <XCircle className="w-14 h-14 text-slate-600" />
-                  <span className="text-sm font-bold text-slate-500">
+                  <XCircle className="w-12 h-12 text-slate-600" />
+                  <span className="text-xs font-bold text-slate-500">
                     TERKUNCI
                   </span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-14 h-14 text-white/50" />
-                  <span className="text-base font-bold text-white/80">
+                  <Zap className="w-12 h-12 text-white/50" />
+                  <span className="text-sm font-bold text-white/80">
                     {session.phase === 'lobby' ? 'STANDBY' : 'SIAP-SIAP'}
                   </span>
                 </>
@@ -537,17 +575,21 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           </div>
         </div>
 
-        {/* Quick Help Subtext */}
-        <p className="text-slate-500 text-xs mt-6">
-          {session.phase === 'buzzer_open' 
-            ? '🔥 Tekan secepat mungkin saat bel dibuka!' 
-            : 'Perwakilan resmi terdaftar di proyektor guru'}
-        </p>
+        {/* Quick Customization Button */}
+        <div className="mt-3">
+          <button
+            onClick={() => setIsCustomizingGroup(true)}
+            className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white bg-slate-900 border border-slate-800 px-3 py-1 rounded-full shadow-xs transition"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Ganti Nama & Maskot Tim</span>
+          </button>
+        </div>
       </main>
 
       {/* Bottom Live Mini Leaderboard */}
-      <footer className="relative z-10 p-3 bg-slate-900/90 backdrop-blur-md border-t border-slate-800">
-        <div className="flex items-center justify-center gap-2 overflow-x-auto py-1 max-w-xl mx-auto scrollbar-none">
+      <footer className="relative z-10 p-2.5 bg-slate-900/90 backdrop-blur-md border-t border-slate-800">
+        <div className="flex items-center justify-center gap-2 overflow-x-auto py-0.5 max-w-xl mx-auto scrollbar-none">
           {session.groups.map(group => {
             const isMe = group.id === selectedGroupId;
             const isWinner = session.buzzerWinner?.groupId === group.id;
@@ -564,7 +606,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
                 }`}
               >
                 <span>{group.avatarIcon}</span>
-                <span className="truncate max-w-[60px]">{group.name.replace(/Kelompok \d+ - /, '')}</span>
+                <span className="truncate max-w-[65px]">{group.name.replace(/Kelompok \d+ - /, '')}</span>
                 <span className={`font-mono text-[11px] font-black ${isWinner ? 'text-slate-950' : 'text-emerald-400'}`}>
                   {group.score}
                 </span>
@@ -573,6 +615,102 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           })}
         </div>
       </footer>
+
+      {/* STUDENT CUSTOMIZE GROUP MODAL */}
+      {isCustomizingGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-base font-black text-white">
+                  Kustomisasi Tim Anda
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCustomizingGroup(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveGroupCustomization} className="space-y-4">
+              <div>
+                <label className="text-xs text-slate-400 font-semibold block mb-1">
+                  Nama Kelompok:
+                </label>
+                <input
+                  type="text"
+                  value={customNameInput}
+                  onChange={e => setCustomNameInput(e.target.value)}
+                  placeholder="Contoh: Tim Garuda Perkasa"
+                  maxLength={30}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 font-semibold block mb-1.5">
+                  Pilih Maskot / Avatar Tim:
+                </label>
+                <div className="grid grid-cols-8 gap-1.5">
+                  {AVAILABLE_AVATARS.map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setCustomAvatarInput(emoji)}
+                      className={`w-9 h-9 rounded-xl text-xl flex items-center justify-center border transition ${
+                        customAvatarInput === emoji 
+                          ? 'border-amber-400 bg-amber-500/20 scale-110 shadow-md ring-2 ring-amber-400/40' 
+                          : 'border-slate-800 bg-slate-950 hover:bg-slate-800'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 font-semibold block mb-1.5">
+                  Pilih Warna Identitas:
+                </label>
+                <div className="flex items-center justify-between gap-1.5">
+                  {AVAILABLE_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCustomColorInput(c)}
+                      className={`w-7 h-7 rounded-full border-2 transition ${
+                        customColorInput === c ? 'border-white scale-125 shadow-md' : 'border-transparent opacity-80'
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold text-xs shadow-md active:scale-95 transition"
+                >
+                  Simpan & Tampilkan di Proyektor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomizingGroup(false)}
+                  className="px-4 py-3 rounded-xl bg-slate-800 text-slate-400 text-xs font-semibold"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
