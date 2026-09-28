@@ -60,6 +60,8 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
   // Anti-Spam & False Start cooldown
   const [spamWarning, setSpamWarning] = useState<string | null>(null);
   const [isCooldownActive, setIsCooldownActive] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const [isShaking, setIsShaking] = useState(false);
   const spamCountRef = useRef(0);
   const lastPhaseRef = useRef(session.phase);
 
@@ -76,6 +78,37 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
       setCustomColorInput(myGroup.color);
     }
   }, [myGroup?.id]);
+
+  // Cooldown countdown timer (0.1s precision)
+  useEffect(() => {
+    let timer: any = null;
+    if (cooldownRemaining > 0) {
+      setIsCooldownActive(true);
+      timer = setInterval(() => {
+        setCooldownRemaining(prev => {
+          if (prev <= 0.1) {
+            clearInterval(timer);
+            setIsCooldownActive(false);
+            setSpamWarning(null);
+            return 0;
+          }
+          return Math.round((prev - 0.1) * 10) / 10;
+        });
+      }, 100);
+    } else {
+      setIsCooldownActive(false);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [cooldownRemaining > 0]);
+
+  // Reset spam count when new round starts
+  useEffect(() => {
+    if (session.phase === 'ready' || session.phase === 'round_result') {
+      spamCountRef.current = 0;
+    }
+  }, [session.phase, session.roundNumber]);
 
   // If local selected group was released or kicked by teacher, reset
   useEffect(() => {
@@ -180,23 +213,43 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
     setIsCustomizingGroup(false);
   };
 
-  // Buzzer Press Handler
+  // Buzzer Press Handler with Strict Anti-Spam / False Start Penalties
   const handleBuzzerClick = useCallback(() => {
     if (!selectedGroupId || !isClaimedByMe) {
       return;
     }
 
-    // False Start / Early Tap Protection
+    // False Start / Early Tap Protection (Clicking before bell is open)
     if (session.phase !== 'buzzer_open') {
+      audioEffects.playWrongAnswer();
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 350);
+
       spamCountRef.current += 1;
-      if (spamCountRef.current >= 3) {
-        setSpamWarning('⚠️ Jangan spam klik sebelum bel dibuka!');
-        setTimeout(() => setSpamWarning(null), 2000);
+      if (spamCountRef.current === 1) {
+        setSpamWarning('⛔ Bel belum dibuka! Klik dini terdeteksi (1/3)');
+        setTimeout(() => setSpamWarning(null), 2500);
+      } else if (spamCountRef.current === 2) {
+        setSpamWarning('⚠️ PERINGATAN: 1 klik lagi tombol akan DIBEKUKAN!');
+        setTimeout(() => setSpamWarning(null), 2500);
+      } else if (spamCountRef.current >= 3) {
+        setSpamWarning('🔒 PENALTI SPAM: Tombol dibekukan 3 detik!');
+        setCooldownRemaining(3.0);
+        spamCountRef.current = 0;
       }
       return;
     }
 
-    if (isCooldownActive || session.buzzerWinner) {
+    // If cooldown is currently active during open bell
+    if (cooldownRemaining > 0 || isCooldownActive) {
+      audioEffects.playWrongAnswer();
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 300);
+      setSpamWarning(`🔒 Penalti Aktif: Tombol beku ${cooldownRemaining.toFixed(1)}s lagi!`);
+      return;
+    }
+
+    if (session.buzzerWinner) {
       return;
     }
 
@@ -217,7 +270,7 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
       studentName,
       studentNisn
     );
-  }, [session, selectedGroupId, isClaimedByMe, isCooldownActive, studentId, studentName, studentNisn]);
+  }, [session, selectedGroupId, isClaimedByMe, isCooldownActive, cooldownRemaining, studentId, studentName, studentNisn]);
 
   // Touch handlers for maximum speed & prevent scrolling on button
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -508,21 +561,23 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
         </div>
 
         {/* GIANT 3D BUZZER BUTTON */}
-        <div className="relative flex items-center justify-center my-auto">
+        <div className={`relative flex items-center justify-center my-auto ${isShaking ? 'animate-shake' : ''}`}>
           {/* Pulsing ring when active */}
-          {session.phase === 'buzzer_open' && !isCooldownActive && (
+          {session.phase === 'buzzer_open' && !isCooldownActive && cooldownRemaining <= 0 && (
             <div className="absolute -inset-6 rounded-full bg-emerald-500/30 animate-ping pointer-events-none" />
           )}
 
           {/* 3D Button Container */}
-          <div className="relative p-2.5 rounded-full bg-gradient-to-b from-slate-800 to-slate-950 border-4 border-slate-700 shadow-2xl shadow-black/80">
+          <div className={`relative p-2.5 rounded-full bg-gradient-to-b from-slate-800 to-slate-950 border-4 shadow-2xl shadow-black/80 ${
+            cooldownRemaining > 0 || isCooldownActive ? 'border-rose-600/70 shadow-rose-950/80' : 'border-slate-700'
+          }`}>
             <button
               onClick={handleBuzzerClick}
               onTouchStart={handleTouchStart}
-              disabled={session.phase !== 'buzzer_open' || !!session.buzzerWinner || isCooldownActive}
+              disabled={session.phase !== 'buzzer_open' || !!session.buzzerWinner || isCooldownActive || cooldownRemaining > 0}
               className={`w-60 h-60 sm:w-68 sm:h-68 rounded-full font-black text-2xl tracking-wider transition-all duration-100 flex flex-col items-center justify-center gap-2.5 relative select-none shadow-2xl cursor-pointer ${
-                isCooldownActive
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border-4 border-rose-500/50'
+                cooldownRemaining > 0 || isCooldownActive
+                  ? 'bg-gradient-to-b from-rose-950 via-slate-900 to-rose-950 text-rose-300 cursor-not-allowed border-4 border-rose-600/50 shadow-inner'
                   : session.phase === 'buzzer_open'
                   ? 'bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-700 text-slate-950 shadow-emerald-500/50 hover:brightness-110 active:translate-y-2 active:shadow-inner ring-8 ring-emerald-400/40'
                   : isMyGroupWinner
@@ -536,11 +591,14 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
               <div className="absolute top-4 inset-x-8 h-14 bg-white/20 rounded-full blur-[2px] pointer-events-none" />
 
               {/* Icon / State */}
-              {isCooldownActive ? (
+              {cooldownRemaining > 0 || isCooldownActive ? (
                 <>
-                  <AlertTriangle className="w-12 h-12 text-rose-400 animate-bounce" />
-                  <span className="text-sm font-black text-rose-300">
-                    COOLDOWN
+                  <Lock className="w-12 h-12 text-rose-400 animate-bounce" />
+                  <span className="text-xl font-black text-rose-300">
+                    BEKU {cooldownRemaining.toFixed(1)}s
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-rose-400 bg-rose-950/80 px-2.5 py-0.5 rounded-full border border-rose-500/40">
+                    PENALTI SPAM KLIK
                   </span>
                 </>
               ) : session.phase === 'buzzer_open' ? (
@@ -576,8 +634,8 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           </div>
         </div>
 
-        {/* Quick Customization Button */}
-        <div className="mt-3">
+        {/* Quick Customization Button & Fairplay Notice */}
+        <div className="mt-2.5 flex flex-col items-center gap-1.5">
           <button
             onClick={() => setIsCustomizingGroup(true)}
             className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white bg-slate-900 border border-slate-800 px-3 py-1 rounded-full shadow-xs transition"
@@ -585,6 +643,11 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
             <Edit3 className="w-3.5 h-3.5" />
             <span>Ganti Nama & Maskot Tim</span>
           </button>
+
+          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400 bg-slate-900/50 border border-slate-800 px-2.5 py-0.5 rounded-full">
+            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+            <span>Fairplay: 3x klik dini = penalti beku tombol 3 detik</span>
+          </div>
         </div>
       </main>
 
