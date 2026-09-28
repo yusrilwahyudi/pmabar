@@ -459,6 +459,24 @@ class BuzzerService {
     return updated;
   }
 
+  // Action: Guru mengatur poin untuk soal aktif / babak bonus
+  public updateQuestionPoints(session: BuzzerGameSession, points: number): BuzzerGameSession {
+    const updated: BuzzerGameSession = {
+      ...session,
+      pointsForCorrect: points,
+      currentQuestion: session.currentQuestion
+        ? { ...session.currentQuestion, points }
+        : {
+            id: `oral-q-${session.roundNumber}`,
+            questionText: '',
+            points,
+            category: points >= 200 ? '🔥 Babak Bonus' : 'Pertanyaan Lisan Guru'
+          }
+    };
+    this.broadcast(updated, 'UPDATE_QUESTION');
+    return updated;
+  }
+
   // Action: Guru memberikan poin (Benar / Salah)
   public awardPoints(
     session: BuzzerGameSession,
@@ -467,9 +485,10 @@ class BuzzerService {
   ): BuzzerGameSession {
     if (!session.buzzerWinner) return session;
 
+    const pointsToAward = customPoints ?? session.currentQuestion?.points ?? session.pointsForCorrect ?? 100;
     const delta = isCorrect
-      ? (customPoints ?? session.pointsForCorrect)
-      : -(customPoints ?? session.penaltyForWrong);
+      ? pointsToAward
+      : -session.penaltyForWrong;
 
     const updatedGroups = session.groups.map(g => {
       if (g.id === session.buzzerWinner?.groupId) {
@@ -499,6 +518,8 @@ class BuzzerService {
       roundNumber: advanceRound ? session.roundNumber + 1 : session.roundNumber,
       buzzerWinner: null,
       buzzerOpenedAt: null,
+      currentQuestion: undefined,
+      pointsForCorrect: 100, // Reset default point back to 100 for each new question
       remainingAnswerSeconds: session.answerTimeLimitSeconds
     };
     this.broadcast(updated, 'RESET_ROUND');
@@ -517,6 +538,7 @@ class BuzzerService {
       phase: 'ready',
       roundNumber: 1,
       currentQuestion: undefined,
+      pointsForCorrect: 100,
       buzzerWinner: null,
       buzzerOpenedAt: null,
       remainingAnswerSeconds: session.answerTimeLimitSeconds,

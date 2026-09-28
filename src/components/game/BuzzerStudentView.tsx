@@ -423,15 +423,23 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           </div>
         </div>
 
-        {/* Center Round & Score */}
-        <div className="flex items-center gap-2">
+        {/* Center Round, Score & Points */}
+        <div className="flex items-center gap-1.5">
           <div className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-xl text-center">
             <span className="text-[8px] text-slate-400 block font-semibold">RONDE</span>
             <span className="text-xs sm:text-sm font-black text-amber-400">{session.roundNumber} / {session.totalRounds}</span>
           </div>
           <div className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-xl text-center">
-            <span className="text-[8px] text-slate-400 block font-semibold">SKOR</span>
+            <span className="text-[8px] text-slate-400 block font-semibold">SKOR TIM</span>
             <span className="text-xs sm:text-sm font-black text-emerald-400">{myGroup.score}</span>
+          </div>
+          <div className={`border px-2 py-0.5 rounded-xl text-center transition-all ${
+            (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+              ? 'bg-amber-950/80 border-amber-500 text-amber-300 animate-pulse ring-2 ring-amber-500/40'
+              : 'bg-slate-950 border-slate-800 text-indigo-300'
+          }`}>
+            <span className="text-[8px] text-slate-400 block font-semibold">POIN SOAL</span>
+            <span className="text-xs sm:text-sm font-black">★ {session.currentQuestion?.points ?? session.pointsForCorrect ?? 100}</span>
           </div>
         </div>
 
@@ -493,9 +501,27 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           )}
 
           {session.phase === 'ready' && (
-            <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-3.5 shadow-xl animate-pulse">
-              <div className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-[11px] font-bold mb-1">
-                <Clock className="w-3 h-3" /> DENGARKAN SOAL GURU
+            <div className={`border rounded-2xl p-3.5 shadow-xl animate-pulse ${
+              (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+                ? 'bg-amber-950/60 border-amber-400 ring-2 ring-amber-500/30'
+                : 'bg-amber-950/40 border-amber-500/30'
+            }`}>
+              <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold mb-1 ${
+                (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+                  ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950'
+                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              }`}>
+                {(session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200 ? (
+                  <>
+                    <Flame className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>BABAK BONUS: ★ {session.currentQuestion?.points ?? session.pointsForCorrect ?? 100} POIN</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3 h-3" />
+                    <span>DENGARKAN SOAL GURU (★ {session.currentQuestion?.points ?? session.pointsForCorrect ?? 100} POIN)</span>
+                  </>
+                )}
               </div>
               <h3 className="text-base sm:text-lg font-bold text-amber-200">Bel Masih Terkunci</h3>
               <p className="text-amber-300/70 text-xs mt-0.5">Tunggu aba-aba bel dibuka guru</p>
@@ -503,11 +529,28 @@ export const BuzzerStudentView: React.FC<BuzzerStudentViewProps> = ({
           )}
 
           {session.phase === 'buzzer_open' && (
-            <div className="bg-emerald-950/60 border-2 border-emerald-400 rounded-2xl p-3.5 shadow-2xl animate-bounce">
-              <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-slate-950 px-3 py-0.5 rounded-full text-xs font-black tracking-widest mb-1 shadow-lg">
-                <Flame className="w-3.5 h-3.5 fill-slate-950" /> BEL DIBUKA! CEPAT TEKAN!
+            <div className={`rounded-2xl p-3.5 shadow-2xl animate-bounce border-2 ${
+              (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+                ? 'bg-gradient-to-r from-amber-950 via-rose-950 to-amber-950 border-amber-400'
+                : 'bg-emerald-950/60 border-emerald-400'
+            }`}>
+              <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black tracking-widest mb-1 shadow-lg ${
+                (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+                  ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950 animate-pulse'
+                  : 'bg-emerald-500 text-slate-950'
+              }`}>
+                <Flame className="w-3.5 h-3.5 fill-slate-950" />
+                {(session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+                  ? `BABAK BONUS: +${session.currentQuestion?.points ?? session.pointsForCorrect ?? 100} POIN!`
+                  : 'BEL DIBUKA! CEPAT TEKAN!'}
               </div>
-              <h3 className="text-lg sm:text-xl font-black text-emerald-300">SIAPA CEPAT DIA DAPAT!</h3>
+              <h3 className={`text-lg sm:text-xl font-black ${
+                (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200
+                  ? 'text-amber-300'
+                  : 'text-emerald-300'
+              }`}>
+                SIAPA CEPAT DIA DAPAT!
+              </h3>
             </div>
           )}
 

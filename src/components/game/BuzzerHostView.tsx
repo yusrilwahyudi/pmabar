@@ -191,7 +191,14 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
     onUpdateSession?.(updated);
   };
 
+  const handleUpdatePoints = (points: number) => {
+    const validPoints = Math.max(10, Math.min(2000, points));
+    const updated = buzzerService.updateQuestionPoints(session, validPoints);
+    onUpdateSession?.(updated);
+  };
+
   const handleAwardPoints = (isCorrect: boolean) => {
+    const currentPoints = session.currentQuestion?.points ?? session.pointsForCorrect ?? 100;
     if (isCorrect) {
       soundEngine.playCorrectAnswer();
       try {
@@ -205,7 +212,7 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
       soundEngine.playWrongAnswer();
     }
 
-    const updated = buzzerService.awardPoints(session, isCorrect, session.currentQuestion?.points);
+    const updated = buzzerService.awardPoints(session, isCorrect, currentPoints);
     onUpdateSession?.(updated);
   };
 
@@ -437,13 +444,66 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
           
           {/* Question Prompt Card */}
           <div className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl relative overflow-hidden backdrop-blur-md shrink-0">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                {session.currentQuestion?.category || 'Pertanyaan Lisan Guru'}
-              </span>
-              <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
-                ★ {session.currentQuestion?.points || session.pointsForCorrect} Poin
-              </span>
+            {/* Question Header: Category & Interactive Point / Bonus Round Selector */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {session.currentQuestion?.category || 'Pertanyaan Lisan Guru'}
+                </span>
+                {(session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) >= 200 && (
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md shadow-amber-500/30 animate-pulse flex items-center gap-1">
+                    <Flame className="w-3 h-3 fill-white" /> BABAK BONUS
+                  </span>
+                )}
+              </div>
+
+              {/* Point Quick Selector for Guru */}
+              <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 p-1 rounded-xl">
+                <span className="text-[10px] font-bold text-slate-400 pl-1 pr-0.5 hidden sm:inline">
+                  Poin:
+                </span>
+                {[100, 200, 300, 500].map(pt => {
+                  const currentPt = session.currentQuestion?.points ?? session.pointsForCorrect ?? 100;
+                  const isSelected = currentPt === pt;
+                  return (
+                    <button
+                      key={pt}
+                      onClick={() => handleUpdatePoints(pt)}
+                      className={`px-2 py-0.5 rounded-lg text-[11px] font-black transition-all ${
+                        isSelected
+                          ? pt >= 200
+                            ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 ring-2 ring-amber-400 scale-105'
+                            : 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-400 scale-105'
+                          : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                      }`}
+                      title={pt >= 200 ? `Atur sebagai Babak Bonus ${pt} Poin` : `Atur ${pt} Poin`}
+                    >
+                      {pt === 100 ? '100' : pt === 500 ? '🔥 500' : `+${pt}`}
+                    </button>
+                  );
+                })}
+
+                {/* Custom Point Stepper */}
+                <div className="flex items-center gap-0.5 pl-1 border-l border-slate-800">
+                  <button
+                    onClick={() => handleUpdatePoints(Math.max(10, (session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) - 50))}
+                    className="w-5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold"
+                    title="-50 Poin"
+                  >
+                    -
+                  </button>
+                  <span className="font-mono text-[11px] font-black text-amber-400 px-1 min-w-[32px] text-center">
+                    {session.currentQuestion?.points ?? session.pointsForCorrect ?? 100}
+                  </span>
+                  <button
+                    onClick={() => handleUpdatePoints((session.currentQuestion?.points ?? session.pointsForCorrect ?? 100) + 50)}
+                    className="w-5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold"
+                    title="+50 Poin"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
 
             <h2 className="text-base sm:text-lg md:text-xl font-bold text-white tracking-tight leading-snug line-clamp-3">
