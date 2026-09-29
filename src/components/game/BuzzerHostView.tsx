@@ -84,21 +84,6 @@ export const BuzzerHostView: React.FC<BuzzerHostViewProps> = ({
   const lastHostPhaseRef = useRef(session.phase);
   const lastWinnerRef = useRef(session.buzzerWinner?.pressedAt);
 
-  // Realtime Host Heartbeat: Keep all student devices automatically in sync with 0 refresh needed
-  useEffect(() => {
-    // Initial broadcast when host mounts or session updates
-    buzzerService.broadcast(session, 'STATE_SYNC');
-
-    // Continuous heartbeat pulse every 1.5s
-    const heartbeat = setInterval(() => {
-      buzzerService.broadcastHeartbeat(session);
-    }, 1500);
-
-    return () => {
-      clearInterval(heartbeat);
-    };
-  }, [session]);
-
   // Audio triggers for Realtime Network State Changes on Host
   useEffect(() => {
     if (session.phase !== lastHostPhaseRef.current) {

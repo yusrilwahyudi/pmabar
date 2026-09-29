@@ -68,6 +68,8 @@ class BuzzerService {
   private channels: Record<string, any> = {};
   private broadcastChannels: Record<string, BroadcastChannel> = {};
   private listeners: Record<string, ((session: BuzzerGameSession) => void)[]> = {};
+  private clientId: string = Math.random().toString(36).substring(2, 9);
+  private currentSessions: Record<string, BuzzerGameSession> = {};
 
   public getDefaultGroups(count: number = 6): GameGroup[] {
     return DEFAULT_GROUPS.slice(0, Math.max(2, Math.min(count, 8)));
@@ -78,11 +80,17 @@ class BuzzerService {
   }
 
   public loadSession(classId: string, className: string = 'Kelas'): BuzzerGameSession {
+    if (this.currentSessions[classId]) {
+      return this.currentSessions[classId];
+    }
+
     const key = this.getSessionKey(classId);
     try {
       const stored = localStorage.getItem(key);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        this.currentSessions[classId] = parsed;
+        return parsed;
       }
     } catch (e) {}
 
@@ -104,12 +112,13 @@ class BuzzerService {
     };
 
     this.saveSession(defaultSession);
+    this.currentSessions[classId] = defaultSession;
     return defaultSession;
   }
 
   public saveSession(session: BuzzerGameSession) {
     const key = this.getSessionKey(session.classId);
-    session.updatedAt = Date.now();
+    this.currentSessions[session.classId] = session;
     try {
       localStorage.setItem(key, JSON.stringify(session));
     } catch (e) {}
@@ -127,25 +136,30 @@ class BuzzerService {
       bc.onmessage = (event) => {
         if (!event.data) return;
 
+        // Prevent self-echo
+        if (event.data.senderId === this.clientId) return;
+
         if (event.data.type === 'REQUEST_STATE') {
-          // If this client has session and is host or has newer session, reply
-          const current = this.loadSession(classId);
-          if (current) {
-            this.broadcast(current, 'STATE_SYNC');
+          // Only host responds to request state
+          if (isHost) {
+            const current = this.currentSessions[classId] || this.loadSession(classId);
+            if (current) {
+              this.broadcast(current, 'STATE_SYNC');
+            }
           }
         } else if (event.data.session) {
-          this.notifyListeners(classId, event.data.session);
+          this.handleIncomingSession(classId, event.data.session);
         }
       };
       this.broadcastChannels[classId] = bc;
     }
 
-    // 2. Storage event fallback
+    // 2. Storage event fallback for other windows
     const storageHandler = (e: StorageEvent) => {
       if (e.key === this.getSessionKey(classId) && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          this.notifyListeners(classId, parsed);
+          this.handleIncomingSession(classId, parsed);
         } catch (err) {}
       }
     };
@@ -155,45 +169,28 @@ class BuzzerService {
     if (isSupabaseConfigured && supabase && !this.channels[classId]) {
       const client = supabase as any;
       const channel = client.channel(`buzzer-room-${classId}`, {
-        config: {
-          broadcast: { self: false },
-          presence: { key: isHost ? 'host' : `student-${Math.random().toString(36).substring(2, 7)}` }
-        }
+        config: { broadcast: { self: false } }
       });
 
-      // Handle Broadcasted State Sync
       channel
         .on('broadcast', { event: 'buzzer_sync' }, (payload: any) => {
-          if (payload.payload && payload.payload.session) {
-            this.saveSession(payload.payload.session);
-            this.notifyListeners(classId, payload.payload.session);
+          if (!payload.payload) return;
+          if (payload.payload.senderId === this.clientId) return;
+
+          if (payload.payload.session) {
+            this.handleIncomingSession(classId, payload.payload.session);
           }
         })
-        // Handle Request State from newly joined students
         .on('broadcast', { event: 'buzzer_request' }, () => {
-          const current = this.loadSession(classId);
-          if (current) {
-            this.broadcast(current, 'STATE_SYNC');
-          }
-        })
-        // Handle Presence Sync (Instantly catches host session on join)
-        .on('presence', { event: 'sync' }, () => {
-          try {
-            const state = channel.presenceState();
-            for (const key in state) {
-              const presences = state[key];
-              const hostPresence = presences.find((p: any) => p.role === 'host' && p.session);
-              if (hostPresence && hostPresence.session) {
-                this.saveSession(hostPresence.session);
-                this.notifyListeners(classId, hostPresence.session);
-                break;
-              }
+          if (isHost) {
+            const current = this.currentSessions[classId] || this.loadSession(classId);
+            if (current) {
+              this.broadcast(current, 'STATE_SYNC');
             }
-          } catch (e) {}
+          }
         })
         .subscribe((status: string) => {
-          if (status === 'SUBSCRIBED') {
-            // Once connected, request latest authoritative state from host
+          if (status === 'SUBSCRIBED' && !isHost) {
             this.requestState(classId);
           }
         });
@@ -201,13 +198,23 @@ class BuzzerService {
       this.channels[classId] = channel;
     }
 
-    // Request state immediately on subscribing
-    this.requestState(classId);
+    // If client is student, request current state immediately
+    if (!isHost) {
+      this.requestState(classId);
+    }
 
     return () => {
       this.listeners[classId] = (this.listeners[classId] || []).filter(cb => cb !== callback);
       window.removeEventListener('storage', storageHandler);
     };
+  }
+
+  private handleIncomingSession(classId: string, incomingSession: BuzzerGameSession) {
+    const current = this.currentSessions[classId];
+    if (!current || incomingSession.updatedAt >= (current.updatedAt || 0) || incomingSession.phase !== current.phase || incomingSession.buzzerWinner !== current.buzzerWinner) {
+      this.saveSession(incomingSession);
+      this.notifyListeners(classId, incomingSession);
+    }
   }
 
   // Request latest state from Host
@@ -218,7 +225,7 @@ class BuzzerService {
         this.broadcastChannels[classId].postMessage({
           type: 'REQUEST_STATE',
           classId,
-          timestamp: Date.now()
+          senderId: this.clientId
         });
       } catch (e) {}
     }
@@ -229,14 +236,15 @@ class BuzzerService {
         this.channels[classId].send({
           type: 'broadcast',
           event: 'buzzer_request',
-          payload: { classId, timestamp: Date.now() }
+          payload: { classId, senderId: this.clientId }
         });
       } catch (e) {}
     }
   }
 
-  // Broadcast Full State with Realtime & Presence
+  // Broadcast Full State with Realtime (Explicit, Zero-Loop)
   public broadcast(session: BuzzerGameSession, eventType: BuzzerEventPayload['type'] = 'STATE_SYNC') {
+    session.updatedAt = Date.now();
     this.saveSession(session);
     this.notifyListeners(session.classId, session);
 
@@ -245,7 +253,8 @@ class BuzzerService {
       try {
         this.broadcastChannels[session.classId].postMessage({
           type: eventType,
-          session
+          session,
+          senderId: this.clientId
         });
       } catch (e) {}
     }
@@ -256,28 +265,7 @@ class BuzzerService {
         this.channels[session.classId].send({
           type: 'broadcast',
           event: 'buzzer_sync',
-          payload: { type: eventType, session }
-        });
-
-        // Track presence so any new student gets state immediately on connect
-        this.channels[session.classId].track({
-          role: 'host',
-          classId: session.classId,
-          session,
-          updatedAt: Date.now()
-        }).catch(() => {});
-      } catch (e) {}
-    }
-  }
-
-  // Lightweight Heartbeat to prevent packet drops and maintain live sync without refresh
-  public broadcastHeartbeat(session: BuzzerGameSession) {
-    if (isSupabaseConfigured && supabase && this.channels[session.classId]) {
-      try {
-        this.channels[session.classId].send({
-          type: 'broadcast',
-          event: 'buzzer_sync',
-          payload: { type: 'HEARTBEAT', session }
+          payload: { type: eventType, session, senderId: this.clientId }
         });
       } catch (e) {}
     }
